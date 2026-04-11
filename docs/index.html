@@ -469,10 +469,16 @@ Without this step, then you will receive the following error when the swichbot p
 <p>Hybrid client: the plugin uses <code>node-switchbot@^4.0.0</code> with BLE + OpenAPI discovery and OpenAPI fallback.</p>
 </li>
 <li>
+<p>OpenAPI credentials: cloud discovery and cloud fallback paths require both <code>openApiToken</code> and <code>openApiSecret</code>.</p>
+</li>
+<li>
 <p>UI always served: the plugin UI is packaged into <code>dist/homebridge-ui</code> and is always served when Homebridge UI support is present; there is no platform-level opt-out.</p>
 </li>
 <li>
 <p>OpenAPI hardening: OpenAPI calls have AbortController timeouts, jittered exponential backoff, per-device retry limits and cooldowns, and safe response parsing for resilient behavior.</p>
+</li>
+<li>
+<p>v4 resilience enabled in discovery: plugin discovery enables retry, circuit-breaker, and connection-intelligence flags from <code>node-switchbot</code> v4.</p>
 </li>
 <li>
 <p>Write coalescing (debounce): command writes to the same device are coalesced by default to avoid command floods. Configure with <code>writeDebounceMs</code> (milliseconds, default 100). Set to <code>0</code> to disable coalescing.</p>

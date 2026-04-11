@@ -311,8 +311,10 @@ These controls keep API usage smooth and predictable while preserving per-device
 
 - Matter-first: when Homebridge Matter is available the plugin now prefers registering Matter accessories (with HAP fallback).
 - Hybrid client: the plugin uses `node-switchbot@^4.0.0` with BLE + OpenAPI discovery and OpenAPI fallback.
+- OpenAPI credentials: cloud discovery and cloud fallback paths require both `openApiToken` and `openApiSecret`.
 - UI always served: the plugin UI is packaged into `dist/homebridge-ui` and is always served when Homebridge UI support is present; there is no platform-level opt-out.
 - OpenAPI hardening: OpenAPI calls have AbortController timeouts, jittered exponential backoff, per-device retry limits and cooldowns, and safe response parsing for resilient behavior.
+- v4 resilience enabled in discovery: plugin discovery enables retry, circuit-breaker, and connection-intelligence flags from `node-switchbot` v4.
 
 - Write coalescing (debounce): command writes to the same device are coalesced by default to avoid command floods. Configure with `writeDebounceMs` (milliseconds, default 100). Set to `0` to disable coalescing.
 

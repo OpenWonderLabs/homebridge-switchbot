@@ -22,6 +22,8 @@ export function registerDiscoveryEndpoint(server: HomebridgePluginUiServer) {
         enableBLE: true,
         enableFallback: true,
         enableRetry: true,
+        enableCircuitBreaker: true,
+        enableConnectionIntelligence: true,
       })
 
       await switchbot.discover({ timeout: 1000 })
@@ -50,7 +52,7 @@ export function registerDiscoveryEndpoint(server: HomebridgePluginUiServer) {
       const token = getCredential(platform, 'openApiToken') || platform.token
       const secret = getCredential(platform, 'openApiSecret') || platform.secret
 
-      const hasOpenAPICredentials = !!token
+      const hasOpenAPICredentials = !!(token && secret)
 
       if (!hasOpenAPICredentials) {
         uiLog.warn('GET /discover - No OpenAPI credentials found, will attempt BLE-only discovery')
@@ -66,6 +68,8 @@ export function registerDiscoveryEndpoint(server: HomebridgePluginUiServer) {
         enableBLE: true,
         enableFallback: true,
         enableRetry: true,
+        enableCircuitBreaker: true,
+        enableConnectionIntelligence: true,
       })
 
       const deviceMap = new Map<string, any>()

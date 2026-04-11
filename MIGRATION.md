@@ -9,13 +9,13 @@ This document highlights important changes and recommended actions before upgrad
 2. Configuration keys
    - `enableMatter` (boolean) — enable Matter child-bridge registration.
    - `preferMatter` (boolean) — prefer Matter for devices that support Matter descriptors; HAP fallback still available.
-   - `openApiToken` (string) — when present the plugin may prefer OpenAPI calls for cloud-reachable devices.
+   - `openApiToken` + `openApiSecret` (string) — both are required for OpenAPI discovery/calls for cloud-reachable devices.
    - `perDeviceMaxRetries`, `requestTimeout`, `maxRetries` — network retry/timing options for OpenAPI fallback.
 
    - `writeDebounceMs` (number, milliseconds, default 100) — global write coalescing debounce window. Commands sent to the same device within this window are coalesced (last-write-wins) to reduce duplicate network/API commands. Set to `0` to disable coalescing if you require immediate, per-command delivery.
 
 3. Hybrid client
-   - The plugin dynamically imports `node-switchbot` when available and falls back to OpenAPI when an `openApiToken` is configured.
+   - The plugin dynamically imports `node-switchbot` when available and uses OpenAPI fallback when both `openApiToken` and `openApiSecret` are configured.
    - If you rely on BLE-only operation, ensure devices and the host have BLE available.
 
 4. UI changes

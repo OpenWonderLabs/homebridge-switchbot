@@ -56,8 +56,8 @@
   "icon": "https://raw.githubusercontent.com/OpenWonderLabs/homebridge-switchbot/latest/branding/icon.png",
   "engineStrict": true,
   "engines": {
-    "homebridge": "^2.0.0-beta.50",
-    "node": "^20 || ^22 || ^24"
+    "homebridge": "^2.0.0-beta.86",
+    "node": "^22 || ^24"
   },
   "directories": {
     "doc": "docs"
@@ -67,11 +67,11 @@
     "check": "npm install && npm outdated",
     "ports:free": "node scripts/free-dev-ports.mjs",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/**/*.ts test/**/*.ts src/homebridge-ui/**/*.html src/homebridge-ui/public/js/*.ts && npm run typecheck",
-    "lint:src": "eslint src/**/*.ts",
-    "lint:test": "eslint test/**/*.ts",
-    "lint:ui": "eslint src/homebridge-ui/**/*.html",
-    "lint:fix": "eslint src/**/*.ts test/**/*.ts src/homebridge-ui/**/*.html src/homebridge-ui/public/js/*.ts --fix && npm run typecheck",
+    "lint": "eslint --no-warn-ignored src/**/*.ts test/**/*.ts src/homebridge-ui/**/*.html src/homebridge-ui/public/js/*.ts && npm run typecheck",
+    "lint:src": "eslint --no-warn-ignored src/**/*.ts",
+    "lint:test": "eslint --no-warn-ignored test/**/*.ts",
+    "lint:ui": "eslint --no-warn-ignored src/homebridge-ui/**/*.html",
+    "lint:fix": "eslint --no-warn-ignored src/**/*.ts test/**/*.ts src/homebridge-ui/**/*.html src/homebridge-ui/public/js/*.ts --fix && npm run typecheck",
     "watch": "npm run ports:free && npm run build && npm run build:ui && npm run plugin-ui && npm link && nodemon",
     "watch:ui": "npm run ports:free && bash -c 'npx homebridge -I -U -D ~/.homebridge-dev & HB_PID=$!; sleep 6; UIX_STORAGE_PATH=~/.homebridge-dev node ./node_modules/homebridge-config-ui-x/dist/bin/standalone.js & npm run watch:files'",
     "watch:files": "nodemon",
@@ -91,7 +91,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@homebridge/plugin-ui-utils": "^2.2.1",
+    "@homebridge/plugin-ui-utils": "^2.2.3",
     "class-validator": "^0.15.1",
     "node-switchbot": "^4.0.0"
   },
@@ -99,16 +99,17 @@
     "@antfu/eslint-config": "^8.1.1",
     "@types/debug": "^4.1.13",
     "@types/fs-extra": "^11.0.4",
-    "@types/node": "^25.4.2",
+    "@types/node": "^25.6.0",
     "@types/semver": "^7.7.1",
     "@types/source-map-support": "^0.5.10",
     "@vitest/coverage-v8": "^4.1.4",
     "esbuild": "^0.28.0",
-    "eslint": "^10.0.3",
+    "eslint": "^10.2.0",
     "eslint-plugin-format": "^2.0.1",
     "eslint-plugin-html": "^8.1.4",
     "eslint-plugin-perfectionist": "^5.8.0",
     "homebridge": "^2.0.0-beta.86",
+    "homebridge-config-ui-x": "^5.21.0",
     "nodemon": "^3.1.14",
     "shx": "^0.4.0",
     "typedoc": "^0.28.18",

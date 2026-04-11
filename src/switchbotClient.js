@@ -1,0 +1,247 @@
+import { getDeviceCommandHandler } from './deviceCommandMapper.js';
+import { CharacteristicMissingError, SwitchbotAuthenticationError, SwitchbotOperationError } from './errors.js';
+/**
+ * Thin wrapper around node-switchbot v4.0.0+
+ * Leverages upstream resilience features (retry, circuit breaker, connection intelligence)
+ * while maintaining plugin-specific features like write debouncing and OpenAPI fallback.
+ */
+export class SwitchBotClient {
+    cfg;
+    client = null;
+    writeDebounceMs = 100;
+    discoveryCacheTtlMs = 30_000;
+    lastDiscoveryAt = 0;
+    logger;
+    pendingWrites = new Map();
+    constructor(cfg) {
+        this.cfg = cfg;
+        this.logger = cfg?.logger;
+        if (!this.logger) {
+            throw new Error('SwitchBotClient requires a logger (Homebridge logger) in config');
+        }
+        if (typeof cfg?.writeDebounceMs === 'number') {
+            this.writeDebounceMs = cfg.writeDebounceMs;
+        }
+        if (typeof cfg?.discoveryCacheTtlMs === 'number') {
+            this.discoveryCacheTtlMs = Math.max(0, cfg.discoveryCacheTtlMs);
+        }
+    }
+    async init() {
+        if (this.client) {
+            return;
+        }
+        try {
+            // Dynamic import of node-switchbot v4 with native resilience features
+            const { SwitchBot } = await import('node-switchbot');
+            const rawNodeClientConfig = typeof this.cfg?.nodeClientConfig === 'object' ? this.cfg.nodeClientConfig : {};
+            const scanTimeout = this.resolveScanTimeoutMs(rawNodeClientConfig);
+            this.client = new SwitchBot({
+                token: this.cfg.openApiToken,
+                secret: this.cfg.openApiSecret,
+                // Enable built-in resilience features from node-switchbot v4.
+                enableFallback: true, // Auto-fallback from BLE to API
+                enableRetry: true, // Retry with exponential backoff
+                enableCircuitBreaker: true, // Circuit breaker per connection type
+                enableConnectionIntelligence: true, // Connection tracking and route preference
+                enableBLE: this.cfg.enableBLE !== false, // Use config value, default true
+                scanTimeout,
+                ...rawNodeClientConfig,
+            });
+            this.lastDiscoveryAt = 0;
+            this.logger?.info?.('SwitchBot client initialized with native resilience features');
+        }
+        catch (e) {
+            this.logger?.warn?.('Failed to load node-switchbot; will use OpenAPI fallback:', e);
+            this.client = null;
+        }
+    }
+    async getDevice(id) {
+        if (this.client) {
+            try {
+                const fromManager = this.getManagedDevice(id);
+                if (fromManager) {
+                    return fromManager;
+                }
+                const devices = await this.ensureDiscovered(false);
+                const fromDiscovery = devices.find((d) => d.id === id);
+                if (fromDiscovery) {
+                    return fromDiscovery;
+                }
+                const refreshDevices = await this.ensureDiscovered(true);
+                return refreshDevices.find((d) => d.id === id);
+            }
+            catch (e) {
+                if (e instanceof SwitchbotAuthenticationError) {
+                    this.logger?.error?.(`Authentication error for getDevice(${id}):`, e.message);
+                    throw e;
+                }
+                else if (e instanceof SwitchbotOperationError) {
+                    this.logger?.warn?.(`Operation error for getDevice(${id}):`, e.message, e.code);
+                    throw e;
+                }
+                else if (e instanceof CharacteristicMissingError) {
+                    this.logger?.warn?.(`Characteristic missing for getDevice(${id}):`, e.characteristic);
+                    throw e;
+                }
+                else {
+                    this.logger?.warn?.(`Client getDevice failed for ${id}:`, e);
+                    throw e;
+                }
+            }
+        }
+        throw new SwitchbotOperationError('No SwitchBot client available', 'no_client');
+    }
+    async getDevices() {
+        if (this.client) {
+            try {
+                const fromManager = this.getManagedDevices();
+                if (fromManager.length > 0) {
+                    return fromManager;
+                }
+                return await this.ensureDiscovered(false);
+            }
+            catch (e) {
+                this.logger?.warn?.('Client getDevices failed:', e);
+                throw e;
+            }
+        }
+        throw new SwitchbotOperationError('No SwitchBot client available', 'no_client');
+    }
+    async setDeviceState(id, body) {
+        // Plugin-level debounce: coalesce rapid writes per device
+        if (!this.writeDebounceMs || this.writeDebounceMs <= 0) {
+            return this._doSetDeviceState(id, body);
+        }
+        return new Promise((resolve, reject) => {
+            const existing = this.pendingWrites.get(id);
+            if (existing) {
+                existing.body = body;
+                existing.resolvers.push({ resolve, reject });
+                return;
+            }
+            const resolvers = [{ resolve, reject }];
+            const timer = setTimeout(async () => {
+                const entry = this.pendingWrites.get(id);
+                if (!entry) {
+                    return;
+                }
+                this.pendingWrites.delete(id);
+                try {
+                    const out = await this._doSetDeviceState(id, entry.body);
+                    for (const r of entry.resolvers)
+                        r.resolve(out);
+                }
+                catch (e) {
+                    if (e instanceof SwitchbotAuthenticationError) {
+                        this.logger?.error?.(`Authentication error for setDeviceState(${id}):`, e.message);
+                    }
+                    else if (e instanceof SwitchbotOperationError) {
+                        this.logger?.warn?.(`Operation error for setDeviceState(${id}):`, e.message, e.code);
+                    }
+                    else if (e instanceof CharacteristicMissingError) {
+                        this.logger?.warn?.(`Characteristic missing for setDeviceState(${id}):`, e.characteristic);
+                    }
+                    for (const r of entry.resolvers)
+                        r.reject(e);
+                }
+            }, this.writeDebounceMs);
+            this.pendingWrites.set(id, { timer, body, resolvers });
+        });
+    }
+    async _doSetDeviceState(id, body) {
+        if (!this.client) {
+            throw new SwitchbotOperationError('No SwitchBot client available for setDeviceState', 'no_client');
+        }
+        try {
+            const device = await this.getDevice(id);
+            if (!device) {
+                throw new SwitchbotOperationError(`Device ${id} not found`, 'device_not_found');
+            }
+            const deviceType = (device.deviceType ?? '').toLowerCase();
+            const command = body?.command;
+            if (!command) {
+                throw new SwitchbotOperationError('No command specified in body', 'no_command');
+            }
+            const handler = getDeviceCommandHandler(deviceType, command);
+            if (!handler) {
+                throw new SwitchbotOperationError(`Unsupported command '${command}' for device type '${deviceType}'`, 'unsupported_command');
+            }
+            this.logger?.debug?.(`[${id}] Calling mapped command '${command}' for device type '${deviceType}'`);
+            return await handler(device, body);
+        }
+        catch (e) {
+            if (e instanceof SwitchbotAuthenticationError) {
+                this.logger?.error?.(`Authentication error for setDeviceState(${id}):`, e.message);
+                throw e;
+            }
+            else if (e instanceof SwitchbotOperationError) {
+                this.logger?.warn?.(`Operation error for setDeviceState(${id}):`, e.message, e.code);
+                throw e;
+            }
+            else if (e instanceof CharacteristicMissingError) {
+                this.logger?.warn?.(`Characteristic missing for setDeviceState(${id}):`, e.characteristic);
+                throw e;
+            }
+            else {
+                this.logger?.warn?.(`Device command failed for ${id}:`, e);
+                throw e;
+            }
+        }
+    }
+    async destroy() {
+        for (const [, pending] of this.pendingWrites) {
+            clearTimeout(pending.timer);
+            const err = new SwitchbotOperationError('Client destroyed before pending write was sent', 'client_destroyed');
+            for (const r of pending.resolvers) {
+                r.reject(err);
+            }
+        }
+        this.pendingWrites.clear();
+        if (this.client?.cleanup) {
+            await this.client.cleanup();
+        }
+        this.client = null;
+        this.lastDiscoveryAt = 0;
+    }
+    resolveScanTimeoutMs(rawNodeClientConfig) {
+        if (typeof rawNodeClientConfig.scanTimeout === 'number' && Number.isFinite(rawNodeClientConfig.scanTimeout)) {
+            return Math.max(500, rawNodeClientConfig.scanTimeout);
+        }
+        if (typeof rawNodeClientConfig.scanDuration === 'number' && Number.isFinite(rawNodeClientConfig.scanDuration)) {
+            return Math.max(500, rawNodeClientConfig.scanDuration);
+        }
+        if (typeof this.cfg?.bleScanDurationSeconds === 'number') {
+            return Math.max(500, this.cfg.bleScanDurationSeconds * 1000);
+        }
+        return 5000;
+    }
+    getManagedDevice(id) {
+        const manager = this.client?.devices;
+        if (manager?.get) {
+            return manager.get(id);
+        }
+        return undefined;
+    }
+    getManagedDevices() {
+        const manager = this.client?.devices;
+        if (manager?.list) {
+            const list = manager.list();
+            return Array.isArray(list) ? list : [];
+        }
+        return [];
+    }
+    async ensureDiscovered(force) {
+        if (!this.client) {
+            throw new SwitchbotOperationError('No SwitchBot client available', 'no_client');
+        }
+        const fromManager = this.getManagedDevices();
+        const cacheValid = this.discoveryCacheTtlMs > 0 && (Date.now() - this.lastDiscoveryAt) < this.discoveryCacheTtlMs;
+        if (!force && cacheValid && fromManager.length > 0) {
+            return fromManager;
+        }
+        const discovered = await this.client.discover();
+        this.lastDiscoveryAt = Date.now();
+        return discovered;
+    }
+}
+//# sourceMappingURL=switchbotClient.js.map
