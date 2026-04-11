@@ -1,8 +1,9 @@
 #Others
+#Others
 node_modules
 dist/
 coverage/
-docs/
+# docs/ removed from ignore to allow tracking
 #DS_Store Files
 .DS_Store
 src/.DS_Store

@@ -1,4 +1,5 @@
 {
+  "theme": "default",
   "out": "docs",
   "exclude": ["src/**/*.spec.ts"],
   "entryPoints": [

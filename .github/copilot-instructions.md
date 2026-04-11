@@ -2,6 +2,45 @@
 
 Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.
 
+## Topic-Based Reference Priority
+
+When a prompt includes the topics below, consult these upstream references first before implementation decisions.
+
+### Matter (keyword examples: "Matter", "child bridge", "cluster", "conformance")
+
+Primary references:
+- https://github.com/homebridge-plugins/homebridge-matter
+- https://github.com/homebridge/homebridge/ - only if latest is 2.0.0 or later and contains Matter-related code or reference: 
+   - https://github.com/homebridge/homebridge/tree/beta-2.0.0/
+- https://github.com/matter-js/matter.js
+
+Usage rule:
+- For Matter behavior, conformance, clustering, or registration logic, align implementation with these references before applying local changes.
+
+### SwitchBot BLE (keyword examples: "BLE", "Bluetooth", "RSSI", "advertisement", "scan")
+
+Primary references:
+- https://github.com/OpenWonderLabs/SwitchBotAPI-BLE
+- https://github.com/sblibs/pySwitchbot
+
+Usage rule:
+- For BLE command/state/scan behavior, prefer these references for protocol expectations and payload shape.
+
+### SwitchBot OpenAPI (keyword examples: "OpenAPI", "cloud API", "device list", "command")
+
+Primary reference:
+- https://github.com/OpenWonderLabs/SwitchBotAPI
+
+Usage rule:
+- For OpenAPI device models, commands, and response fields, prioritize this reference for compatibility.
+
+### Conflict Resolution
+
+If references conflict:
+1. Prefer official upstream docs/API specs.
+2. Keep existing plugin behavior unless a clear bug is identified.
+3. Document any intentional deviation in PR notes.
+
 ## Branch Targeting Strategy
 
 When creating pull requests, ALWAYS follow this branch targeting strategy:

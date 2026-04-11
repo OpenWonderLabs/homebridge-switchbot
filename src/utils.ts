@@ -1,669 +1,1178 @@
-/* Copyright(C) 2017-2024, donavanbecker (https://github.com/donavanbecker). All rights reserved.
+import type { SwitchBotPluginConfig } from './settings.js'
+import type { Logger, PlatformConfig } from 'homebridge'
+/**
+ * Indicates which device types should prefer Matter if available.
+ * Based on HAP service mappings: device implementations use specific HomeKit services
+ * that map to corresponding Matter clusters when Matter is enabled.
  *
- * util.ts: @switchbot/homebridge-switchbot platform class.
+ * @property {boolean} [deviceType] - True if the device type supports Matter, false otherwise.
+ * @example
+ * DEVICE_MATTER_SUPPORTED['bot'] // true
  */
-import type { blindTilt, curtain, curtain3, device } from 'node-switchbot'
-
-import type { devicesConfig } from './settings.js'
-
-export enum BlindTiltMappingMode {
-  OnlyUp = 'only_up',
-  OnlyDown = 'only_down',
-  DownAndUp = 'down_and_up',
-  UpAndDown = 'up_and_down',
-  UseTiltForDirection = 'use_tilt_for_direction',
-}
-
-export function isCurtainDevice(device: device & devicesConfig): device is (curtain | curtain3) & devicesConfig {
-  return device.deviceType === 'Curtain' || device.deviceType === 'Curtain3'
-}
-
-export function isBlindTiltDevice(device: device & devicesConfig): device is blindTilt & devicesConfig {
-  return device.deviceType === 'Blind Tilt'
-}
-
-export function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
 /**
- * Check if the humidity is within the min and max range
- * @param humidity - The humidity value
- * @param min - The minimum humidity value
- * @param max - The maximum humidity value
- * @returns The humidity value
- */
-export function validHumidity(humidity: number, min?: number, max?: number): number {
-  if (humidity < (min || 0)) {
-    return min ?? 0
-  } else if (humidity > (max || 100)) {
-    return max ?? 100
-  }
-  return humidity
-}
-
-/**
- * Converts the value to celsius if the temperature units are in Fahrenheit
- */
-export function convertUnits(value: number, unit: string, convert?: string): number {
-  if (unit === 'CELSIUS' && convert === 'CELSIUS') {
-    return Math.round((value * 9) / 5 + 32)
-  } else if (unit === 'FAHRENHEIT' && convert === 'FAHRENHEIT') {
-    // celsius should be to the nearest 0.5 degree
-    return Math.round((5 / 9) * (value - 32) * 2) / 2
-  }
-  return value
-}
-
-/**
- * Safely serializes an object to a JSON string, handling circular references.
+ * Factory function to create Matter handlers with Homebridge logger integration.
+ * Returns handler objects for supported device types, mapping Matter cluster actions to SwitchBot API calls.
  *
- * @param obj - The object to be serialized.
- * @returns The JSON string representation of the object.
+ * @param log - Homebridge logger instance
+ * @param deviceId - SwitchBot device ID
+ * @param type - Device type string
+ * @param client - SwitchBot client instance
+ * @returns Handler object for Matter clusters
  */
-export function safeStringify(obj: any) {
-  const seen = new WeakSet()
-  return JSON.stringify(obj, (_key, value) => {
-    if (typeof value === 'object' && value !== null) {
-      if (seen.has(value)) {
-        return
+
+export const DEVICE_MATTER_SUPPORTED: Record<string, boolean> = {
+  // Core devices
+  'bot': true, // Switch → OnOff
+  'curtain': true, // WindowCovering → WindowCovering
+  'fan': true, // Fan → FanControl
+  'light': true, // Lightbulb → OnOff + LevelControl
+  'lightstrip': true, // Lightbulb (color) → OnOff + LevelControl + ColorControl
+  'motion': true, // MotionSensor → OccupancySensing
+  'contact': true, // ContactSensor → BooleanState
+  'vacuum': true, // Switch → RobotVacuumCleaner
+  'lock': true, // LockMechanism → DoorLock
+  'humidifier': true, // Fan + Humidity → OnOff + FanControl + RelativeHumidityMeasurement
+  'temperature': true, // TemperatureSensor → TemperatureMeasurement
+
+  // Switch devices
+  'relay': true, // Switch → OnOff
+  'relay switch 1': true, // Switch → OnOff
+  'relay switch 1pm': true, // Switch → OnOff
+  'plug': true, // Outlet → OnOff
+  'plug mini (jp)': true, // Outlet → OnOff
+  'plug mini (us)': true, // Outlet → OnOff
+
+  // Window covering variants
+  'blindtilt': true, // WindowCovering → WindowCovering
+  'blind tilt': true, // WindowCovering → WindowCovering
+  'curtain3': true, // WindowCovering → WindowCovering
+  'rollershade': true, // WindowCovering → WindowCovering
+  'roller shade': true, // WindowCovering → WindowCovering
+  'worollershade': true, // WindowCovering → WindowCovering
+  'wo rollershade': true, // WindowCovering → WindowCovering
+
+  // Vacuum variants (normalized to 'vacuum' before lookup)
+  'wosweeper': true, // VacuumDevice → RobotVacuumCleaner
+  'wosweepermini': true, // VacuumDevice → RobotVacuumCleaner
+  'wosweeperminipro': true, // VacuumDevice → RobotVacuumCleaner
+  'k10+': true, // VacuumDevice → RobotVacuumCleaner
+  'k10+ pro': true, // VacuumDevice → RobotVacuumCleaner
+
+  // Sensors
+  'meter': true, // TemperatureSensor + HumiditySensor → TemperatureMeasurement + RelativeHumidityMeasurement
+  'meterplus': true, // TemperatureSensor + HumiditySensor → TemperatureMeasurement + RelativeHumidityMeasurement
+  'meter plus (jp)': true, // TemperatureSensor + HumiditySensor → TemperatureMeasurement + RelativeHumidityMeasurement
+  'meterpro': true, // TemperatureSensor + HumiditySensor → TemperatureMeasurement + RelativeHumidityMeasurement
+  'meterpro(co2)': true, // TemperatureSensor + HumiditySensor → TemperatureMeasurement + RelativeHumidityMeasurement
+  'waterdetector': true, // LeakSensor → BooleanState
+  'water detector': true, // LeakSensor → BooleanState
+
+  // Other devices
+  'smart fan': true, // Fan → FanControl
+  'strip light': true, // Lightbulb (color) → OnOff + LevelControl + ColorControl
+  'hub 2': false, // Hub device - not exposed as accessory
+  'walletfinder': false, // Button device - Matter support TBD
+}
+
+/**
+ * Default Matter cluster configurations by device type.
+ * Maps device types to their Matter cluster states (used when device doesn't provide clusters).
+ * Note: wosweeper/curtain/plug variants are normalized before cluster lookup (see loadDevices).
+ *
+ * @property {object} [deviceType] - The default cluster state for the device type.
+ * @example
+ * DEVICE_MATTER_CLUSTERS['bot'] // { onOff: { onOff: false } }
+ */
+export const DEVICE_MATTER_CLUSTERS: Record<string, any> = {
+  // Core devices - aligned with HAP service implementations
+  bot: { onOff: { onOff: false } }, // Switch → OnOff
+  vacuum: {
+    rvcRunMode: {
+      supportedModes: [
+        { label: 'Idle', mode: 0, modeTags: [{ value: 16384 }] },
+        { label: 'Cleaning', mode: 1, modeTags: [{ value: 16385 }] },
+      ],
+      currentMode: 0,
+    },
+    rvcCleanMode: {
+      supportedModes: [
+        { label: 'Vacuum', mode: 0, modeTags: [{ value: 16385 }] },
+      ],
+      currentMode: 0,
+    },
+    rvcOperationalState: {
+      operationalStateList: [
+        { operationalStateId: 0 }, // Stopped
+        { operationalStateId: 1 }, // Running
+        { operationalStateId: 2 }, // Paused
+        { operationalStateId: 3 }, // Error (required)
+        { operationalStateId: 64 }, // Seeking charger
+        { operationalStateId: 65 }, // Charging
+        { operationalStateId: 66 }, // Docked
+      ],
+      operationalState: 66,
+    },
+  }, // Switch in HAP, RobotVacuumCleaner in Matter
+  curtain: {
+    windowCovering: {
+      currentPositionLiftPercent100ths: 0,
+      targetPositionLiftPercent100ths: 0,
+      operationalStatus: {
+        global: 0,
+        lift: 0,
+        tilt: 0,
+      },
+      endProductType: 0,
+      configStatus: {
+        operational: true,
+        onlineReserved: true,
+        liftMovementReversed: false,
+        liftPositionAware: true,
+        tiltPositionAware: false,
+        liftEncoderControlled: true,
+        tiltEncoderControlled: false,
+      },
+    },
+  }, // WindowCovering → WindowCovering (includes curtain3, rollershade variants via normalization)
+  blindtilt: {
+    windowCovering: {
+      currentPositionLiftPercent100ths: 0,
+      targetPositionLiftPercent100ths: 0,
+      currentPositionTiltPercent100ths: 0,
+      targetPositionTiltPercent100ths: 0,
+      operationalStatus: {
+        global: 0,
+        lift: 0,
+        tilt: 0,
+      },
+      endProductType: 8,
+      configStatus: {
+        operational: true,
+        onlineReserved: true,
+        liftMovementReversed: false,
+        liftPositionAware: true,
+        tiltPositionAware: true,
+        liftEncoderControlled: true,
+        tiltEncoderControlled: true,
+      },
+    },
+  }, // WindowCovering with tilt → WindowCovering
+  fan: {
+    onOff: { onOff: false },
+    fanControl: {
+      fanMode: 0,
+      percentCurrent: 0,
+      percentSetting: 0,
+      speedCurrent: 0,
+      speedMax: 100,
+    },
+  }, // Fan → OnOff + FanControl
+  light: {
+    onOff: { onOff: false },
+    levelControl: {
+      currentLevel: 0,
+      minLevel: 0,
+      maxLevel: 254,
+    },
+  }, // Lightbulb → OnOff + LevelControl
+  lightstrip: {
+    onOff: { onOff: false },
+    levelControl: {
+      currentLevel: 0,
+      minLevel: 0,
+      maxLevel: 254,
+    },
+    colorControl: {
+      colorMode: 0,
+    },
+  }, // Lightbulb with color → OnOff + LevelControl + ColorControl
+  lock: {
+    doorLock: {
+      lockState: 0,
+      lockType: 0,
+      actuatorEnabled: true,
+      operatingMode: 0,
+    },
+  }, // LockMechanism → DoorLock
+  motion: {
+    occupancySensing: {
+      occupancy: 0,
+      occupancySensorType: 0,
+    },
+  }, // MotionSensor → OccupancySensing
+  contact: {
+    booleanState: {
+      stateValue: false,
+    },
+  }, // ContactSensor → BooleanState
+  humidifier: {
+    onOff: { onOff: false },
+    fanControl: {
+      fanMode: 0,
+      percentCurrent: 0,
+    },
+    relativeHumidityMeasurement: {
+      measuredValue: 0,
+      minMeasuredValue: 0,
+      maxMeasuredValue: 100,
+    },
+  }, // HumidifierDehumidifier → OnOff + FanControl + RelativeHumidityMeasurement
+  temperature: {
+    temperatureMeasurement: {
+      measuredValue: 0,
+      minMeasuredValue: -27315,
+      maxMeasuredValue: 32767,
+    },
+  }, // TemperatureSensor → TemperatureMeasurement
+
+  // Switch/Outlet devices
+  relay: { onOff: { onOff: false } }, // Switch → OnOff
+  plug: {
+    onOff: { onOff: false },
+    electricalMeasurement: {
+      activePower: 0,
+      rmsCurrent: 0,
+      rmsVoltage: 0,
+    },
+  }, // Outlet → OnOff + ElectricalMeasurement (for PM models)
+
+  // Sensors
+  meter: {
+    temperatureMeasurement: {
+      measuredValue: 0,
+      minMeasuredValue: -27315,
+      maxMeasuredValue: 32767,
+    },
+    relativeHumidityMeasurement: {
+      measuredValue: 0,
+      minMeasuredValue: 0,
+      maxMeasuredValue: 100,
+    },
+  }, // TemperatureSensor + HumiditySensor → TemperatureMeasurement + RelativeHumidityMeasurement
+  waterdetector: {
+    booleanState: {
+      stateValue: false,
+    },
+  }, // LeakSensor → BooleanState
+}
+
+export function createMatterHandlers(log: Logger, deviceId: string, type: string, client: any): any {
+  const lowerType = type.toLowerCase()
+
+  switch (lowerType) {
+    case 'vacuum':
+      return {
+        rvcRunMode: {
+          changeToMode: async (request: any) => {
+            const modeNames = ['Idle', 'Cleaning', 'Mapping']
+            const modeName = modeNames[request?.newMode] || `Unknown (${request?.newMode})`
+            log.info(`[${deviceId}] RVC run mode change requested: ${modeName}`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              // For K10+ family: use 'start' to begin cleaning (mode 1 = Cleaning)
+              // For older K10+: only supports start/stop/dock
+              // For newer K20+/S10/S20: supports startClean with more parameters
+              // Map Matter mode to SwitchBot command
+              const switchBotCommand = request?.newMode === 1 ? 'start' : 'stop'
+              const body = {
+                command: switchBotCommand,
+                parameter: 'default',
+                commandType: 'command',
+              }
+              log.debug(`[${deviceId}] Sending RVC mode change request:`, JSON.stringify(body))
+              const result = await client.setDeviceState(deviceId, body)
+              log.debug(`[${deviceId}] RVC mode change API response:`, JSON.stringify(result))
+              log.info(`[${deviceId}] RVC mode changed successfully to ${switchBotCommand}`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to change RVC mode:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+        rvcCleanMode: {
+          changeToMode: async (request: any) => {
+            const modeName = request?.newMode !== undefined ? `Mode ${request.newMode}` : 'Unknown'
+            log.info(`[${deviceId}] RVC clean mode change requested: ${modeName}`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              // Clean mode (vacuum/mop/etc) not directly supported via Matter for K10+
+              // K20+ Pro and newer models support via startClean action parameter
+              log.info(`[${deviceId}] Clean mode change requires startClean command (not yet implemented for Matter)`)
+              return { success: true }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to change RVC clean mode:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+        rvcOperationalState: {
+          pause: async () => {
+            log.info(`[${deviceId}] RVC pause command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const body = {
+                command: 'stop',
+                parameter: 'default',
+                commandType: 'command',
+              }
+              log.debug(`[${deviceId}] Sending RVC pause request:`, JSON.stringify(body))
+              const result = await client.setDeviceState(deviceId, body)
+              log.debug(`[${deviceId}] RVC pause API response:`, JSON.stringify(result))
+              log.info(`[${deviceId}] RVC paused successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to pause RVC:`, e)
+              return { success: false, error: e }
+            }
+          },
+          resume: async () => {
+            log.info(`[${deviceId}] RVC resume command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const body = {
+                command: 'start',
+                parameter: 'default',
+                commandType: 'command',
+              }
+              log.debug(`[${deviceId}] Sending RVC resume request:`, JSON.stringify(body))
+              const result = await client.setDeviceState(deviceId, body)
+              log.debug(`[${deviceId}] RVC resume API response:`, JSON.stringify(result))
+              log.info(`[${deviceId}] RVC resumed successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to resume RVC:`, e)
+              return { success: false, error: e }
+            }
+          },
+          goHome: async () => {
+            log.info(`[${deviceId}] RVC goHome command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const body = {
+                command: 'dock',
+                parameter: 'default',
+                commandType: 'command',
+              }
+              log.debug(`[${deviceId}] Sending RVC goHome request:`, JSON.stringify(body))
+              const result = await client.setDeviceState(deviceId, body)
+              log.debug(`[${deviceId}] RVC goHome API response:`, JSON.stringify(result))
+              log.info(`[${deviceId}] RVC sent to dock successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to send goHome command:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
       }
-      seen.add(value)
-    }
-    return value
-  }, '  ')
+
+    case 'bot':
+      return {
+        onOff: {
+          on: async () => {
+            log.info(`[${deviceId}] Bot ON command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOn',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Bot turned on successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn on Bot:`, e)
+              return { success: false, error: e }
+            }
+          },
+          off: async () => {
+            log.info(`[${deviceId}] Bot OFF command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOff',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Bot turned off successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn off Bot:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+      }
+
+    case 'curtain':
+    case 'blindtilt':
+      return {
+        windowCovering: {
+          goToLiftPercentage: async (request: any) => {
+            const percentage = request?.liftPercent100thsValue
+            log.info(`[${deviceId}] Curtain position change requested: ${percentage}`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              // Convert Matter percentage (0-10000) to SwitchBot (0-100)
+              const position = Math.max(0, Math.min(100, Math.round((percentage || 0) / 100)))
+              const result = await client.setDeviceState(deviceId, {
+                command: 'setPosition',
+                parameter: String(position),
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Curtain position set to ${position}% successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to set curtain position:`, e)
+              return { success: false, error: e }
+            }
+          },
+          upOrOpen: async () => {
+            log.info(`[${deviceId}] Curtain open command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'open',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Curtain opened successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to open curtain:`, e)
+              return { success: false, error: e }
+            }
+          },
+          downOrClose: async () => {
+            log.info(`[${deviceId}] Curtain close command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'close',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Curtain closed successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to close curtain:`, e)
+              return { success: false, error: e }
+            }
+          },
+          stopMotion: async () => {
+            log.info(`[${deviceId}] Curtain stop command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'pause',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Curtain motion stopped successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to stop curtain:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+      }
+
+    case 'plug':
+      return {
+        onOff: {
+          on: async () => {
+            log.info(`[${deviceId}] Plug ON command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOn',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Plug turned on successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn on plug:`, e)
+              return { success: false, error: e }
+            }
+          },
+          off: async () => {
+            log.info(`[${deviceId}] Plug OFF command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOff',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Plug turned off successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn off plug:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+      }
+
+    case 'lock':
+      return {
+        doorLock: {
+          setLockState: async (request: any) => {
+            const state = request?.lockState === 1 ? 'LOCKED' : 'UNLOCKED'
+            log.info(`[${deviceId}] Lock state change requested: ${state}`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const command = request?.lockState === 1 ? 'lock' : 'unlock'
+              const result = await client.setDeviceState(deviceId, {
+                command,
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Lock ${state} successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to change lock state:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+      }
+
+    case 'fan':
+      return {
+        onOff: {
+          on: async () => {
+            log.info(`[${deviceId}] Fan ON command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOn',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Fan turned on successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn on fan:`, e)
+              return { success: false, error: e }
+            }
+          },
+          off: async () => {
+            log.info(`[${deviceId}] Fan OFF command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOff',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Fan turned off successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn off fan:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+        fanControl: {
+          setFanSpeed: async (request: any) => {
+            const speed = request?.percentSetting || 0
+            log.info(`[${deviceId}] Fan speed change requested: ${speed}%`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              // Convert percentage to SwitchBot fan speed parameter
+              const speedParam = Math.max(1, Math.min(100, speed))
+              const result = await client.setDeviceState(deviceId, {
+                command: 'setFanSpeed',
+                parameter: String(speedParam),
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Fan speed set to ${speedParam}% successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to set fan speed:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+      }
+
+    case 'light':
+      return {
+        onOff: {
+          on: async () => {
+            log.info(`[${deviceId}] Light ON command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOn',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Light turned on successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn on light:`, e)
+              return { success: false, error: e }
+            }
+          },
+          off: async () => {
+            log.info(`[${deviceId}] Light OFF command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOff',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Light turned off successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn off light:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+        levelControl: {
+          moveToLevel: async (request: any) => {
+            const level = request?.level || 0
+            // Convert from 0-254 to 0-100
+            const brightness = Math.round((level / 254) * 100)
+            log.info(`[${deviceId}] Light brightness change requested: ${brightness}%`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const param = Math.max(0, Math.min(100, brightness))
+              const result = await client.setDeviceState(deviceId, {
+                command: 'setBrightness',
+                parameter: String(param),
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Light brightness set to ${param}% successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to set light brightness:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+      }
+
+    case 'lightstrip':
+      return {
+        onOff: {
+          on: async () => {
+            log.info(`[${deviceId}] Lightstrip ON command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOn',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Lightstrip turned on successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn on lightstrip:`, e)
+              return { success: false, error: e }
+            }
+          },
+          off: async () => {
+            log.info(`[${deviceId}] Lightstrip OFF command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOff',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Lightstrip turned off successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn off lightstrip:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+        levelControl: {
+          moveToLevel: async (request: any) => {
+            const level = request?.level || 0
+            // Convert from 0-254 to 0-100
+            const brightness = Math.round((level / 254) * 100)
+            log.info(`[${deviceId}] Lightstrip brightness change requested: ${brightness}%`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const param = Math.max(0, Math.min(100, brightness))
+              const result = await client.setDeviceState(deviceId, {
+                command: 'setBrightness',
+                parameter: String(param),
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Lightstrip brightness set to ${param}% successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to set lightstrip brightness:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+        colorControl: {
+          moveToHueAndSaturation: async (request: any) => {
+            const hue = request?.hue || 0
+            const saturation = request?.saturation || 0
+            log.info(`[${deviceId}] Lightstrip color change requested: hue=${hue}, sat=${saturation}`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              // Convert hue (0-254) and saturation (0-254) to combined color parameter
+              // SwitchBot typically expects RGB or HSV format as parameter
+              const colorParam = `${Math.round(hue)},${Math.round(saturation)}`
+              const result = await client.setDeviceState(deviceId, {
+                command: 'setColor',
+                parameter: colorParam,
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Lightstrip color set successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to set lightstrip color:`, e)
+              return { success: false, error: e }
+            }
+          },
+          moveToColorTemperature: async (request: any) => {
+            const mireds = request?.colorTemperatureMireds || 400
+            // Convert mireds (158-500 typical range) to Kelvin: K = 1000000 / mireds
+            const kelvin = Math.round(1000000 / mireds)
+            log.info(`[${deviceId}] Lightstrip color temperature change requested: ${mireds} mireds (${kelvin}K)`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              // Map Kelvin to SwitchBot color temperature parameter (typically 0-100 or specific values)
+              // Normalize to 0-100 scale where 0=warm (2700K) and 100=cool (6500K)
+              const colorTempParam = Math.max(0, Math.min(100, Math.round(((kelvin - 2700) / 3800) * 100)))
+              const result = await client.setDeviceState(deviceId, {
+                command: 'setColorTemperature',
+                parameter: String(colorTempParam),
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Lightstrip color temperature set to ${kelvin}K successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to set lightstrip color temperature:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+      }
+
+    case 'humidifier':
+      return {
+        onOff: {
+          on: async () => {
+            log.info(`[${deviceId}] Humidifier ON command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOn',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Humidifier turned on successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn on humidifier:`, e)
+              return { success: false, error: e }
+            }
+          },
+          off: async () => {
+            log.info(`[${deviceId}] Humidifier OFF command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOff',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Humidifier turned off successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn off humidifier:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+        fanControl: {
+          setFanSpeed: async (request: any) => {
+            const speed = request?.percentSetting || 0
+            log.info(`[${deviceId}] Humidifier speed change requested: ${speed}%`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              // Convert percentage to SwitchBot humidifier speed parameter
+              const speedParam = Math.max(1, Math.min(100, speed))
+              const result = await client.setDeviceState(deviceId, {
+                command: 'setFanSpeed',
+                parameter: String(speedParam),
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Humidifier speed set to ${speedParam}% successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to set humidifier speed:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+      }
+
+    case 'relay':
+      return {
+        onOff: {
+          on: async () => {
+            log.info(`[${deviceId}] Relay ON command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOn',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Relay turned on successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn on relay:`, e)
+              return { success: false, error: e }
+            }
+          },
+          off: async () => {
+            log.info(`[${deviceId}] Relay OFF command received`)
+            if (!client) {
+              log.warn(`[${deviceId}] No SwitchBot client available`)
+              return { success: false }
+            }
+            try {
+              const result = await client.setDeviceState(deviceId, {
+                command: 'turnOff',
+                parameter: 'default',
+                commandType: 'command',
+              })
+              log.info(`[${deviceId}] Relay turned off successfully`)
+              return { success: true, result }
+            } catch (e) {
+              log.error(`[${deviceId}] Failed to turn off relay:`, e)
+              return { success: false, error: e }
+            }
+          },
+        },
+      }
+
+    default:
+      return undefined
+  }
 }
 
 /**
- * Formats a device ID as a MAC address.
- * Ensures the device ID does not already contain colons.
+ * Resolves the Matter device type for a given device, using the Matter API and device type mappings.
+ * Used to map normalized device types to Matter device type definitions.
  *
- * @param deviceId - The device ID to format.
- * @param cassSensative - If the MAC address should be case sensitive. Default is false, which will return the MAC address in lowercase.
- * @returns The formatted MAC address.
- * @throws Will throw an error if the device ID is not a valid MAC address or a 12-character hexadecimal string.
+ * @param matterApi - The Matter API object containing deviceTypes
+ * @param type - The normalized device type string
+ * @param createdDeviceType - Optionally, an already created device type object
+ * @param clusters - Optionally, the clusters object for the device
+ * @returns The resolved Matter device type object
  */
-export function formatDeviceIdAsMac(deviceId: string, cassSensative?: boolean): string {
-  if (typeof deviceId !== 'string') {
-    throw new TypeError('Invalid device ID format. Device ID must be a string.')
-  }
-
-  deviceId = deviceId.trim()
-
-  const macAddressRegex = /^(?:[0-9a-f]{2}:){5}[0-9a-f]{2}$/i
-  const hexRegex = /^[0-9a-f]{12}$/i
-  const vacuumFormatRegex = /^[a-z0-9]{12,18}$/i
-
-  // Check if the deviceId is already in a valid MAC address format
-  if (macAddressRegex.test(deviceId)) {
-    return cassSensative ? deviceId : deviceId.toLowerCase()
-  }
-
-  // Check if the deviceId is a valid 12-character hexadecimal string
-  if (hexRegex.test(deviceId)) {
-    const formattedDeviceId = deviceId.match(/.{1,2}/g)!.join(':')
-    return cassSensative ? formattedDeviceId : formattedDeviceId.toLowerCase()
-  }
-
-  // Check if the deviceId matches the custom format
-  if (vacuumFormatRegex.test(deviceId)) {
-    const formattedDeviceId = deviceId.slice(-12).match(/.{1,2}/g)!.join(':')
-    return cassSensative ? formattedDeviceId : formattedDeviceId.toLowerCase()
-  }
-
-  throw new Error(`Invalid device ID format. Must be a valid MAC address, a 12-character hexadecimal string, or a 12 to 18-character alphanumeric string. Device ID: ${deviceId}`)
+const DEVICE_MATTER_DEVICE_TYPE_KEYS: Record<string, string> = {
+  bot: 'OnOffSwitch',
+  vacuum: 'RoboticVacuumCleaner',
+  curtain: 'WindowCovering',
+  blindtilt: 'WindowCovering',
+  fan: 'Fan',
+  light: 'DimmableLight',
+  lightstrip: 'ExtendedColorLight',
+  lock: 'DoorLock',
+  motion: 'MotionSensor',
+  contact: 'ContactSensor',
+  humidifier: 'Fan',
+  temperature: 'TemperatureSensor',
+  relay: 'OnOffSwitch',
+  plug: 'OnOffOutlet',
+  meter: 'TemperatureSensor',
+  waterdetector: 'LeakSensor',
 }
 
-export function rgb2hs(r: any, g: any, b: any) {
-  /**
-   * Credit:
-   * https://github.com/WickyNilliams/pure-color
-   */
-  r = Number.parseInt(r)
-  g = Number.parseInt(g)
-  b = Number.parseInt(b)
-  const min = Math.min(r, g, b)
-  const max = Math.max(r, g, b)
-  const delta = max - min
-  let h
-  let s
-  if (max === 0) {
-    s = 0
-  } else {
-    s = (delta / max) * 100
+export function resolveMatterDeviceType(matterApi: any, type: string, createdDeviceType?: any, clusters?: any): any {
+  if (createdDeviceType && typeof createdDeviceType === 'object' && typeof createdDeviceType.with === 'function') {
+    return createdDeviceType
   }
-  if (max === min) {
-    h = 0
-  } else if (r === max) {
-    h = (g - b) / delta
-  } else if (g === max) {
-    h = 2 + (b - r) / delta
-  } else if (b === max) {
-    h = 4 + (r - g) / delta
-  }
-  h = Math.min(h * 60, 360)
 
-  if (h < 0) {
-    h += 360
-  }
-  return [Math.round(h), Math.round(s)]
+  const lowerType = (typeof createdDeviceType === 'string' && createdDeviceType) ? createdDeviceType.toLowerCase() : (type || '').toLowerCase()
+
+  // Cluster-based upgrade for color lights if descriptor omitted device type.
+  const hasColorControl = !!clusters?.colorControl
+  const inferredType = hasColorControl && lowerType === 'light'
+    ? 'lightstrip'
+    : lowerType
+
+  const mappedKey = DEVICE_MATTER_DEVICE_TYPE_KEYS[inferredType] || 'OnOffSwitch'
+  return matterApi?.deviceTypes?.[mappedKey] || matterApi?.deviceTypes?.OnOffSwitch
 }
 
-export function hs2rgb(h: any, s: any) {
-  /*
-    Credit:
-    https://github.com/WickyNilliams/pure-color
-  */
-  h = Number.parseInt(h) / 60
-  s = Number.parseInt(s) / 100
-  const f = h - Math.floor(h)
-  const p = 255 * (1 - s)
-  const q = 255 * (1 - s * f)
-  const t = 255 * (1 - s * (1 - f))
-  let rgb
-  switch (Math.floor(h) % 6) {
-    case 0:
-      rgb = [255, t, p]
-      break
-    case 1:
-      rgb = [q, 255, p]
-      break
-    case 2:
-      rgb = [p, 255, t]
-      break
-    case 3:
-      rgb = [p, q, 255]
-      break
-    case 4:
-      rgb = [t, p, 255]
-      break
-    case 5:
-      rgb = [255, p, q]
-      break
+/**
+ * Canonical Matter cluster ID mapping (from matter.js clusters).
+ * Maps cluster names to their numeric cluster IDs.
+ *
+ * @example
+ * MATTER_CLUSTER_IDS.OnOff // 0x0006
+ */
+export const MATTER_CLUSTER_IDS = {
+  OnOff: 0x0006,
+  LevelControl: 0x0008,
+  ColorControl: 0x0300,
+  WindowCovering: 0x0102,
+  DoorLock: 0x0101,
+  FanControl: 0x0202,
+  RelativeHumidityMeasurement: 0x0405,
+} as const
+
+/**
+ * Common Matter attribute IDs grouped by cluster.
+ * Maps cluster names to objects mapping attribute names to their numeric attribute IDs.
+ *
+ * @example
+ * MATTER_ATTRIBUTE_IDS.OnOff.OnOff // 0x0000
+ */
+export const MATTER_ATTRIBUTE_IDS = {
+  OnOff: { OnOff: 0x0000 },
+  LevelControl: { CurrentLevel: 0x0000 },
+  ColorControl: { CurrentHue: 0x0000, CurrentSaturation: 0x0001, ColorTemperatureMireds: 0x0002 },
+  WindowCovering: { CurrentPosition: 0x0000, TargetPosition: 0x0001 },
+  FanControl: { SpeedCurrent: 0x0000 },
+  DoorLock: { LockState: 0x0000 },
+  RelativeHumidityMeasurement: { MeasuredValue: 0x0000 },
+} as const
+
+/**
+ * Normalizes a device type string for Matter integration.
+ * Maps various device type aliases and variants to canonical Matter device types.
+ *
+ * @param {string | undefined | null} typeValue - The device type string to normalize.
+ * @returns {string} The normalized device type string for Matter.
+ *
+ * @example
+ * normalizeTypeForMatter('wosweeper') // 'vacuum'
+ * normalizeTypeForMatter('curtain3') // 'curtain'
+ * normalizeTypeForMatter('plug mini (us)') // 'plug'
+ */
+export function normalizeTypeForMatter(typeValue: string | undefined | null): string {
+  const raw = String(typeValue || '').trim().toLowerCase()
+  if (!raw) {
+    return 'unknown'
   }
-  if (rgb[0] === 255) {
-    rgb[1] *= 0.8
-    rgb[2] *= 0.8
-    if (rgb[1] <= 25 && rgb[2] <= 25) {
-      rgb[1] = 0
-      rgb[2] = 0
+
+  // Vacuum variants
+  if (['wosweeper', 'wosweepermini', 'wosweeperminipro', 'k10+', 'k10+ pro'].includes(raw)) {
+    return 'vacuum'
+  }
+
+  // Window covering variants
+  if (['curtain', 'curtain3', 'rollershade', 'roller shade', 'worollershade', 'wo rollershade'].includes(raw)) {
+    return 'curtain'
+  }
+
+  // Blind tilt variants (normalized to 'blindtilt' for Matter since it uses tilt-capable cluster)
+  if (['blindtilt', 'blind tilt'].includes(raw)) {
+    return 'blindtilt'
+  }
+
+  // Plug variants
+  if (['plug mini (jp)', 'plug mini (us)', 'plug mini (eu)'].includes(raw)) {
+    return 'plug'
+  }
+
+  // Meter variants
+  if (['meterplus', 'meter plus', 'meter plus (jp)', 'meterpro', 'meter pro', 'meterpro(co2)', 'meter pro (co2)'].includes(raw)) {
+    return 'meter'
+  }
+
+  // Relay switch variants
+  if (['relay switch 1', 'relay switch 1pm'].includes(raw)) {
+    return 'relay'
+  }
+
+  // Water detector variants
+  if (['water detector', 'waterdetector'].includes(raw)) {
+    return 'waterdetector'
+  }
+
+  // Fan variants
+  if (['smart fan', 'circulator fan', 'battery circulator fan', 'standing circulator fan'].includes(raw)) {
+    return 'fan'
+  }
+
+  // Light variants
+  if (['strip light', 'strip light 3', 'rgbic neon rope light', 'rgbic neon wire rope light', 'rgbicww floor lamp', 'rgbicww strip light'].includes(raw)) {
+    return 'lightstrip'
+  }
+  if (['color bulb', 'ceiling light', 'ceiling light pro', 'candle warmer lamp', 'floor lamp'].includes(raw)) {
+    return 'light'
+  }
+
+  // Sensor variants
+  if (raw === 'motion sensor') {
+    return 'motion'
+  }
+  if (['contact sensor', 'presence sensor'].includes(raw)) {
+    return 'contact'
+  }
+
+  // Lock variants
+  if (['smart lock', 'smart lock pro', 'smart lock ultra', 'lock lite', 'keypad', 'keypad touch', 'keypad vision', 'keypad vision pro', 'lock vision pro'].includes(raw)) {
+    return 'lock'
+  }
+
+  // Climate variant
+  if (raw === 'humidifier2') {
+    return 'humidifier'
+  }
+
+  return raw
+}
+
+/**
+ * Normalizes a Homebridge PlatformConfig object to a SwitchBotPluginConfig.
+ *
+ * @param raw The raw Homebridge platform config object.
+ * @returns The normalized plugin config object.
+ */
+export function normalizeConfig(raw?: PlatformConfig): SwitchBotPluginConfig {
+  if (!raw) {
+    return {}
+  }
+  return { ...(raw as any) } as SwitchBotPluginConfig
+}
+
+// Create a Proxy constructor that instantiates the right platform implementation at runtime.
+/**
+ * Creates a proxy class that instantiates the correct platform implementation (HAP or Matter) at runtime.
+ *
+ * @param HAPPlatform The HAP platform class constructor.
+ * @param MatterPlatform The Matter platform class constructor.
+ * @returns A proxy class that delegates to the correct platform implementation.
+ *
+ * @class SwitchBotPlatformProxy
+ * @property impl The instantiated platform implementation (HAP or Matter).
+ */
+export function createPlatformProxy(HAPPlatform: any, MatterPlatform: any): any {
+  return class SwitchBotPlatformProxy {
+    /** The instantiated platform implementation (HAP or Matter) */
+    private impl: any
+    /**
+     * Constructs the proxy and instantiates the correct platform implementation.
+     * @param log Logger instance
+     * @param config Platform config
+     * @param api Homebridge API instance
+     * @returns The instantiated platform implementation
+     */
+    constructor(log: any, config: PlatformConfig, api: any) {
+      const cfg = normalizeConfig(config)
+      const preferMatter = cfg.preferMatter ?? true
+      const enableMatter = cfg.enableMatter ?? true
+      const matterAvailable = !!(api?.isMatterAvailable?.() && api?.isMatterEnabled?.())
+
+      if (enableMatter && preferMatter && MatterPlatform && matterAvailable) {
+        this.impl = new MatterPlatform(log, cfg, api)
+        return this.impl
+      }
+
+      // Fallback to HAP
+      this.impl = new HAPPlatform(log, cfg, api)
+      return this.impl
     }
   }
-  return [Math.round(rgb[0]), Math.round(rgb[1]), Math.round(rgb[2])]
-}
-
-export function k2rgb(k: number) {
-  // Set kelvin to nearest 100, between 2000 and 7100
-  k = Math.round(k / 100) * 100
-  k = Math.max(Math.min(k, 7100), 2000)
-
-  // k should now appear in our table of kelvin to rgb
-  const values = {
-    2000: [255, 141, 11],
-    2100: [255, 146, 29],
-    2200: [255, 147, 44],
-    2300: [255, 152, 54],
-    2400: [255, 157, 63],
-    2500: [255, 166, 69],
-    2600: [255, 170, 77],
-    2700: [255, 174, 84],
-    2800: [255, 173, 94],
-    2900: [255, 177, 101],
-    3000: [255, 180, 107],
-    3100: [255, 189, 111],
-    3200: [255, 187, 120],
-    3300: [255, 195, 124],
-    3400: [255, 198, 130],
-    3500: [255, 201, 135],
-    3600: [255, 203, 141],
-    3700: [255, 206, 146],
-    3800: [255, 204, 153],
-    3900: [255, 206, 159],
-    4000: [255, 213, 161],
-    4100: [255, 215, 166],
-    4200: [255, 217, 171],
-    4300: [255, 219, 175],
-    4400: [255, 221, 180],
-    4500: [255, 223, 184],
-    4600: [255, 225, 188],
-    4700: [255, 226, 192],
-    4800: [255, 228, 196],
-    4900: [255, 229, 200],
-    5000: [255, 231, 204],
-    5100: [255, 230, 210],
-    5200: [255, 234, 211],
-    5300: [255, 235, 215],
-    5400: [255, 237, 218],
-    5500: [255, 236, 224],
-    5700: [255, 240, 228],
-    5800: [255, 241, 231],
-    5900: [255, 243, 234],
-    6000: [255, 244, 237],
-    6100: [255, 245, 240],
-    6200: [255, 246, 243],
-    6300: [255, 247, 247],
-    6400: [255, 248, 251],
-    6500: [255, 249, 253],
-    6600: [254, 249, 255],
-    6700: [252, 247, 255],
-    6800: [249, 246, 255],
-    6900: [247, 245, 255],
-    7000: [245, 243, 255],
-    7100: [243, 242, 255],
-  }
-
-  // Return the value
-  return values[k]
-}
-
-export function m2hs(m) {
-  /*
-    Credit:
-    https://github.com/homebridge/HAP-NodeJS
-  */
-  const table = {
-    100: [19, 222.1],
-    101: [18.7, 222.2],
-    102: [18.4, 222.3],
-    103: [18.2, 222.3],
-    104: [17.9, 222.4],
-    105: [17.6, 222.5],
-    106: [17.3, 222.7],
-    107: [17, 222.8],
-    108: [16.7, 222.9],
-    109: [16.4, 223],
-    110: [16.1, 223.2],
-    111: [15.8, 223.3],
-    112: [15.4, 223.4],
-    113: [15.2, 223.6],
-    114: [14.9, 223.8],
-    115: [14.7, 223.9],
-    116: [14.3, 224.1],
-    117: [14.1, 224.2],
-    118: [13.8, 224.4],
-    119: [13.5, 224.6],
-    120: [13.2, 224.8],
-    121: [12.9, 225],
-    122: [12.5, 225.3],
-    123: [12.2, 225.6],
-    124: [11.8, 225.9],
-    125: [11.4, 226.3],
-    126: [11.1, 226.7],
-    127: [10.7, 227.1],
-    128: [10.3, 227.6],
-    129: [9.9, 228],
-    130: [9.6, 228.5],
-    131: [9.3, 229.1],
-    132: [8.9, 229.6],
-    133: [8.5, 230.2],
-    134: [8.2, 230.9],
-    135: [7.8, 231.6],
-    136: [7.5, 232.5],
-    137: [7.1, 233.5],
-    138: [6.7, 234.6],
-    139: [6.3, 235.8],
-    140: [6, 237.1],
-    141: [5.6, 238.9],
-    142: [5.2, 240.9],
-    143: [5, 242.9],
-    144: [4.8, 244.9],
-    145: [4.6, 246.9],
-    146: [4.4, 249.3],
-    147: [4.3, 251.9],
-    148: [4.1, 254.9],
-    149: [3.9, 258],
-    150: [3.7, 261.8],
-    151: [3.4, 265.9],
-    152: [3.2, 271],
-    153: [3, 276.4],
-    154: [2.8, 283.6],
-    155: [2.6, 290.4],
-    156: [2.3, 295.3],
-    157: [2.1, 300],
-    158: [1.9, 300],
-    159: [1.6, 300],
-    160: [1.4, 195.8],
-    161: [1.2, 84.3],
-    162: [1.3, 58.2],
-    163: [1.5, 55.9],
-    164: [1.7, 53.2],
-    165: [1.9, 50.2],
-    166: [2.1, 47.1],
-    167: [2.4, 44.5],
-    168: [2.6, 42.6],
-    169: [2.9, 40.9],
-    170: [3.1, 39.5],
-    171: [3.4, 38.3],
-    172: [3.7, 37.3],
-    173: [3.9, 36.5],
-    174: [4.2, 35.7],
-    175: [4.4, 35.1],
-    176: [4.6, 34.5],
-    177: [4.9, 34],
-    178: [5.1, 33.5],
-    179: [5.3, 33],
-    180: [5.6, 32.7],
-    181: [5.8, 32.3],
-    182: [6, 32],
-    183: [6.3, 31.7],
-    184: [6.5, 31.4],
-    185: [6.7, 31.2],
-    186: [7, 30.9],
-    187: [7.2, 30.7],
-    188: [7.4, 30.5],
-    189: [7.6, 30.3],
-    190: [7.9, 30.1],
-    191: [8.1, 29.9],
-    192: [8.4, 29.7],
-    193: [8.6, 29.6],
-    194: [8.9, 29.5],
-    195: [9.1, 29.3],
-    196: [9.4, 29.2],
-    197: [9.6, 29.1],
-    198: [9.8, 29],
-    199: [10, 28.9],
-    200: [10.2, 28.7],
-    201: [10.5, 28.7],
-    202: [10.7, 28.6],
-    203: [11, 28.5],
-    204: [11.2, 28.4],
-    205: [11.4, 28.3],
-    206: [11.6, 28.3],
-    207: [11.8, 28.2],
-    208: [12.1, 28.1],
-    209: [12.3, 28.1],
-    210: [12.5, 28],
-    211: [12.7, 28],
-    212: [12.9, 27.9],
-    213: [13.2, 27.8],
-    214: [13.4, 27.8],
-    215: [13.6, 27.7],
-    216: [13.8, 27.7],
-    217: [14, 27.7],
-    218: [14.3, 27.6],
-    219: [14.5, 27.6],
-    220: [14.7, 27.5],
-    221: [14.9, 27.5],
-    222: [15.1, 27.5],
-    223: [15.3, 27.4],
-    224: [15.5, 27.4],
-    225: [15.8, 27.4],
-    226: [16, 27.3],
-    227: [16.2, 27.3],
-    228: [16.4, 27.3],
-    229: [16.6, 27.3],
-    230: [16.8, 27.2],
-    231: [17, 27.2],
-    232: [17.2, 27.2],
-    233: [17.4, 27.2],
-    234: [17.6, 27.2],
-    235: [17.8, 27.1],
-    236: [18, 27.1],
-    237: [18.2, 27.1],
-    238: [18.4, 27.1],
-    239: [18.7, 27.1],
-    240: [18.8, 27],
-    241: [19, 27],
-    242: [19.2, 27],
-    243: [19.4, 27],
-    244: [19.6, 27],
-    245: [19.8, 27],
-    246: [20, 27],
-    247: [20.3, 26.9],
-    248: [20.5, 26.9],
-    249: [20.6, 26.9],
-    250: [20.8, 26.9],
-    251: [21, 26.9],
-    252: [21.3, 26.9],
-    253: [21.5, 26.9],
-    254: [21.6, 26.9],
-    255: [21.8, 26.8],
-    256: [22, 26.8],
-    257: [22.2, 26.8],
-    258: [22.4, 26.8],
-    259: [22.6, 26.8],
-    260: [22.8, 26.8],
-    261: [23, 26.8],
-    262: [23.2, 26.8],
-    263: [23.4, 26.8],
-    264: [23.6, 26.8],
-    265: [23.8, 26.8],
-    266: [24, 26.8],
-    267: [24.1, 26.8],
-    268: [24.3, 26.8],
-    269: [24.5, 26.8],
-    270: [24.7, 26.8],
-    271: [24.8, 26.8],
-    272: [25.1, 26.7],
-    273: [25.3, 26.7],
-    274: [25.4, 26.7],
-    275: [25.6, 26.7],
-    276: [25.8, 26.7],
-    277: [26, 26.7],
-    278: [26.1, 26.7],
-    279: [26.3, 26.7],
-    280: [26.5, 26.7],
-    281: [26.7, 26.7],
-    282: [26.9, 26.7],
-    283: [27.1, 26.7],
-    284: [27.3, 26.7],
-    285: [27.5, 26.7],
-    286: [27.7, 26.7],
-    287: [27.8, 26.7],
-    288: [28, 26.7],
-    289: [28.2, 26.7],
-    290: [28.4, 26.7],
-    291: [28.6, 26.7],
-    292: [28.8, 26.7],
-    293: [28.9, 26.7],
-    294: [29.1, 26.7],
-    295: [29.3, 26.7],
-    296: [29.5, 26.7],
-    297: [29.6, 26.7],
-    298: [29.8, 26.7],
-    299: [30, 26.7],
-    300: [30.2, 26.7],
-    301: [30.4, 26.7],
-    302: [30.5, 26.7],
-    303: [30.7, 26.7],
-    304: [30.9, 26.7],
-    305: [31.1, 26.7],
-    306: [31.2, 26.7],
-    307: [31.4, 26.7],
-    308: [31.6, 26.7],
-    309: [31.8, 26.8],
-    310: [31.9, 26.8],
-    311: [32.1, 26.8],
-    312: [32.3, 26.8],
-    313: [32.5, 26.8],
-    314: [32.6, 26.8],
-    315: [32.8, 26.8],
-    316: [33, 26.8],
-    317: [33.2, 26.8],
-    318: [33.3, 26.8],
-    319: [33.5, 26.8],
-    320: [33.7, 26.8],
-    321: [33.8, 26.8],
-    322: [34, 26.8],
-    323: [34.2, 26.8],
-    324: [34.4, 26.8],
-    325: [34.5, 26.8],
-    326: [34.7, 26.8],
-    327: [34.9, 26.8],
-    328: [35.1, 26.8],
-    329: [35.2, 26.8],
-    330: [35.4, 26.8],
-    331: [35.5, 26.8],
-    332: [35.7, 26.8],
-    333: [35.9, 26.8],
-    334: [36.1, 26.8],
-    335: [36.3, 26.9],
-    336: [36.5, 26.9],
-    337: [36.7, 26.9],
-    338: [36.9, 26.9],
-    339: [37.1, 26.9],
-    340: [37.2, 26.9],
-    341: [37.4, 26.9],
-    342: [37.5, 26.9],
-    343: [37.7, 26.9],
-    344: [37.9, 26.9],
-    345: [38.1, 26.9],
-    346: [38.3, 26.9],
-    347: [38.5, 26.9],
-    348: [38.7, 26.9],
-    349: [38.9, 26.9],
-    350: [39, 26.9],
-    351: [39.2, 26.9],
-    352: [39.3, 27],
-    353: [39.5, 27],
-    354: [39.7, 27],
-    355: [39.9, 27],
-    356: [40.1, 27],
-    357: [40.2, 27],
-    358: [40.4, 27],
-    359: [40.6, 27],
-    360: [40.8, 27],
-    361: [40.9, 27],
-    362: [41.1, 27],
-    363: [41.2, 27],
-    364: [41.4, 27],
-    365: [41.6, 27],
-    366: [41.8, 27],
-    367: [42, 27],
-    368: [42.1, 27.1],
-    369: [42.3, 27.1],
-    370: [42.4, 27.1],
-    371: [42.6, 27.1],
-    372: [42.8, 27.1],
-    373: [43, 27.1],
-    374: [43.1, 27.1],
-    375: [43.2, 27.1],
-    376: [43.4, 27.1],
-    377: [43.6, 27.1],
-    378: [43.8, 27.1],
-    379: [43.9, 27.1],
-    380: [44.1, 27.1],
-    381: [44.3, 27.2],
-    382: [44.4, 27.2],
-    383: [44.6, 27.2],
-    384: [44.7, 27.2],
-    385: [44.9, 27.2],
-    386: [45.1, 27.2],
-    387: [45.3, 27.2],
-    388: [45.5, 27.2],
-    389: [45.6, 27.2],
-    390: [45.8, 27.2],
-    391: [46, 27.2],
-    392: [46.2, 27.3],
-    393: [46.4, 27.3],
-    394: [46.5, 27.3],
-    395: [46.7, 27.3],
-    396: [46.9, 27.3],
-    397: [47.1, 27.3],
-    398: [47.2, 27.3],
-    399: [47.4, 27.3],
-    400: [47.6, 27.3],
-    401: [47.7, 27.3],
-    402: [47.9, 27.3],
-    403: [48.1, 27.3],
-    404: [48.3, 27.3],
-    405: [48.5, 27.4],
-    406: [48.7, 27.4],
-    407: [48.8, 27.4],
-    408: [49, 27.4],
-    409: [49.2, 27.4],
-    410: [49.4, 27.4],
-    411: [49.6, 27.4],
-    412: [49.7, 27.4],
-    413: [49.9, 27.4],
-    414: [50.1, 27.4],
-    415: [50.2, 27.4],
-    416: [50.4, 27.4],
-    417: [50.6, 27.5],
-    418: [50.7, 27.5],
-    419: [50.9, 27.5],
-    420: [51.1, 27.5],
-    421: [51.2, 27.5],
-    422: [51.4, 27.5],
-    423: [51.6, 27.5],
-    424: [51.7, 27.5],
-    425: [51.9, 27.5],
-    426: [52.1, 27.5],
-    427: [51.2, 27.6],
-    428: [52.4, 27.6],
-    429: [52.5, 27.6],
-    430: [52.7, 27.6],
-    431: [52.9, 27.6],
-    432: [53.1, 27.6],
-    433: [53.2, 27.6],
-    434: [53.4, 27.6],
-    435: [53.6, 27.6],
-    436: [53.7, 27.6],
-    437: [53.9, 27.6],
-    438: [54.1, 27.7],
-    439: [54.2, 27.7],
-    440: [54.3, 27.7],
-    441: [54.5, 27.7],
-    442: [54.7, 27.7],
-    443: [54.8, 27.7],
-    444: [55, 27.7],
-    445: [55.2, 27.7],
-    446: [55.3, 27.7],
-    447: [55.5, 27.7],
-    448: [55.7, 27.7],
-    449: [55.8, 27.8],
-    450: [56, 27.8],
-    451: [56.2, 27.8],
-    452: [56.3, 27.8],
-    453: [56.5, 27.8],
-    454: [56.7, 27.8],
-    455: [56.8, 27.8],
-    456: [57, 27.8],
-    457: [57.2, 27.8],
-    458: [57.3, 27.9],
-    459: [57.4, 27.9],
-    460: [57.6, 27.9],
-    461: [57.8, 27.9],
-    462: [57.9, 27.9],
-    463: [58.1, 27.9],
-    464: [58.3, 27.9],
-    465: [58.4, 27.9],
-    466: [58.6, 27.9],
-    467: [58.8, 27.9],
-    468: [59, 28],
-    469: [59.1, 28],
-    470: [59.2, 28],
-    471: [59.4, 28],
-    472: [59.6, 28],
-    473: [59.7, 28],
-    474: [60, 28],
-    475: [60.1, 28],
-    476: [60.2, 28],
-    477: [60.4, 28],
-    478: [60.6, 28.1],
-    479: [60.7, 28.1],
-    480: [60.9, 28.1],
-    481: [60.1, 28.1],
-    482: [60.3, 28.1],
-    483: [61.4, 28.1],
-    484: [61.5, 28.1],
-    485: [61.7, 28.1],
-    486: [61.9, 28.1],
-    487: [62, 28.2],
-    488: [62.2, 28.2],
-    489: [62.3, 28.2],
-    490: [62.5, 28.2],
-    491: [62.7, 28.2],
-    492: [62.8, 28.2],
-    493: [63, 28.2],
-    494: [63.2, 28.2],
-    495: [63.3, 28.2],
-    496: [63.4, 28.2],
-    497: [63.6, 28.2],
-    498: [63.8, 28.3],
-    499: [63.9, 28.3],
-    500: [64.1, 28.3],
-  }
-  const input = Math.min(Math.max(Math.round(m), 140), 500)
-  const toReturn = table[input]
-  return [Math.round(toReturn[1]), Math.round(toReturn[0])]
 }
