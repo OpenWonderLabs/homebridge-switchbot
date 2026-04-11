@@ -1,0 +1,118 @@
+name: Manual E2E (build + optional E2E)
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_e2e:
+        description: 'Set to true to run the E2E scripts (requires network-accessible Homebridge and valid tokens)'
+        required: false
+        default: 'false'
+      hb_url:
+        description: 'Homebridge UI URL (e.g. http://host:8581)'
+        required: false
+      hb_token:
+        description: 'Homebridge UI token (store as secret or pass here)'
+        required: false
+      light_accessory_id:
+        description: 'Accessory ID for light (when running E2E)'
+        required: false
+      fan_accessory_id:
+        description: 'Accessory ID for fan (when running E2E)'
+        required: false
+      curtain_accessory_id:
+        description: 'Accessory ID for curtain (when running E2E)'
+        required: false
+      lock_accessory_id:
+        description: 'Accessory ID for lock (when running E2E)'
+        required: false
+      light_accessory_name:
+        description: 'Accessory display name for light (optional, used to resolve ID)'
+        required: false
+      fan_accessory_name:
+        description: 'Accessory display name for fan (optional, used to resolve ID)'
+        required: false
+      curtain_accessory_name:
+        description: 'Accessory display name for curtain (optional, used to resolve ID)'
+        required: false
+      lock_accessory_name:
+        description: 'Accessory display name for lock (optional, used to resolve ID)'
+        required: false
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit --progress=false
+
+      - name: Build
+        run: npm run build
+
+      - name: Run unit tests
+        run: npm run test
+
+      - name: "Optional: Run E2E scripts"
+        if: ${{ github.event.inputs.run_e2e == 'true' }}
+        env:
+          HB_URL: ${{ github.event.inputs.hb_url }}
+          HB_TOKEN: ${{ github.event.inputs.hb_token }}
+          LIGHT_ACCESSORY_ID: ${{ github.event.inputs.light_accessory_id }}
+          FAN_ACCESSORY_ID: ${{ github.event.inputs.fan_accessory_id }}
+          CURTAIN_ACCESSORY_ID: ${{ github.event.inputs.curtain_accessory_id }}
+          LOCK_ACCESSORY_ID: ${{ github.event.inputs.lock_accessory_id }}
+          LIGHT_ACCESSORY_NAME: ${{ github.event.inputs.light_accessory_name }}
+          FAN_ACCESSORY_NAME: ${{ github.event.inputs.fan_accessory_name }}
+          CURTAIN_ACCESSORY_NAME: ${{ github.event.inputs.curtain_accessory_name }}
+          LOCK_ACCESSORY_NAME: ${{ github.event.inputs.lock_accessory_name }}
+        run: |
+          echo "Running E2E scripts on runner ($HB_URL) - ensure the runner can access Homebridge and devices"
+          # resolve accessory IDs from names when IDs not provided
+          echo "Resolving accessory IDs from names (if provided)..."
+          rm -f resolved_ids.env || true
+          touch resolved_ids.env
+
+          resolve() {
+            idvar="$1"
+            namevar="$2"
+            nameval="$(eval echo \"\$$namevar\")"
+            idval="$(eval echo \"\$$idvar\")"
+            if [[ -z "$idval" && -n "$nameval" ]]; then
+              resp=$(curl -sS -H "Authorization: Bearer ${HB_TOKEN}" "${HB_URL}/api/accessories" || true)
+              found=$(printf '%s' "$resp" | node -e "const fs=require('fs');const name=process.argv[1];try{const j=JSON.parse(fs.readFileSync(0,'utf8'));const arr=Array.isArray(j)?j:(j.accessories||j)||[];for(const a of arr){if(a.displayName===name||a.name===name||(a.context&&a.context.deviceId===name)){if(a.aid){console.log(a.aid);process.exit(0);}else if(a.UUID){console.log(a.UUID);process.exit(0);}}} }catch(e){}" "$nameval" )
+              if [[ -n "$found" ]]; then
+                echo "Resolved $idvar=$found"
+                echo "$idvar=$found" >> resolved_ids.env
+                export "$idvar"="$found"
+              else
+                echo "Could not resolve $namevar='$nameval' to an id"
+              fi
+            fi
+          }
+
+          resolve LIGHT_ACCESSORY_ID LIGHT_ACCESSORY_NAME
+          resolve FAN_ACCESSORY_ID FAN_ACCESSORY_NAME
+          resolve CURTAIN_ACCESSORY_ID CURTAIN_ACCESSORY_NAME
+          resolve LOCK_ACCESSORY_ID LOCK_ACCESSORY_NAME
+
+          # set RUN_E2E so the conditional Vitest harness executes
+          export RUN_E2E=true
+          npm run test
+
+      - name: Upload logs (if any)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: |
+            test-output.log

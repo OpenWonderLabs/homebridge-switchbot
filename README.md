@@ -21,7 +21,30 @@
    - See noble [prerequisites](https://github.com/abandonware/noble#prerequisites) for your OS. (This is used for BLE connection.)
 3. Click **Install**
 
+
 ## Configuration
+
+### OpenAPI Polling/Rate Advanced Settings (UI)
+
+You can now configure global OpenAPI polling and rate-limiting options directly from the Homebridge UI:
+
+- Go to the SwitchBot plugin settings in Homebridge Config UI X.
+- Scroll to the **Advanced Settings** section at the bottom of the page.
+- Adjust the following options as needed:
+  - **OpenAPI Polling Interval (seconds):** How often to poll devices via OpenAPI for status. Default: 300 (5 min). Min: 30. Can be overridden per device.
+  - **Enable Batched OpenAPI Polling:** Poll all OpenAPI devices in a single batch at the configured interval. Devices with per-device refreshRate are excluded from the batch.
+  - **OpenAPI Batch Polling Interval (seconds):** Interval for batched OpenAPI polling. Falls back to OpenAPI Polling Interval if not set. Default: 300.
+  - **OpenAPI Daily Request Limit:** Maximum OpenAPI requests per day allowed by the plugin. Default: 10000.
+  - **OpenAPI Reserve for Commands:** Requests reserved for user actions. When remaining budget reaches this value, background polling pauses. Default: 1000.
+  - **Reset OpenAPI Counter at Local Midnight:** If true, resets the daily OpenAPI request counter at local midnight. If false, resets at UTC midnight.
+  - **Only Allow Webhooks on Reserve:** When remaining OpenAPI budget reaches the reserve, only webhooks and user commands are allowed. Background polling/discovery pauses.
+  - **OpenAPI Batch Concurrency:** Maximum number of parallel OpenAPI status calls during a batch. Default: 5.
+  - **OpenAPI Batch Jitter (seconds):** Random startup delay before the first batch to reduce synchronized spikes. Default: 0.
+
+Click **Save Advanced Settings** to apply changes. These settings match the options available in `config.schema.json` and can be overridden per device.
+
+<!-- Optionally add a screenshot here -->
+
 
 - ### If using OpenAPI Connection
   1. Download SwitchBot App on App Store or Google Play Store
@@ -52,16 +75,13 @@
 ## Troubleshooting
 
 - ### If using Linux / Raspberry Pi OS
-
   1. `bluetoothctl` must be installed on the device, otherwise it cannot communicate via Bluetooth. Enable it with `sudo bluetoothctl power on`.
 
   2. If errors occur, while enabling it, restart the process:
-
      - `rfkill block bluetooth`
      - `rfkill unblock bluetooth`
 
   3. Also make sure, that the computer can discover the SwitchBot device:
-
      - `sudo bluetoothctl`
      - `scan on`
 
@@ -182,6 +202,49 @@
 - [SwitchBot Water Leak Detector](https://us.switch-bot.com/products/switchbot-water-leak-detector)
   - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
 
+
+## BLE Encryption Support
+
+### BLE Encryption Key and Key ID
+
+Some SwitchBot devices (notably newer locks, curtains, and select sensors) require a BLE encryption key and keyId for secure Bluetooth communication. This plugin supports configuring these fields for each device.
+
+#### How to Obtain BLE Encryption Key and Key ID
+
+1. **Open the SwitchBot App** and select your device.
+2. Go to **Device Settings** (gear icon).
+3. Tap **Device Info**.
+4. If your device supports BLE encryption, you will see fields for **Encryption Key** and **Key ID**. (If not visible, your device may not require encryption or may need a firmware update.)
+5. Copy the **Encryption Key** and **Key ID** values.
+
+#### How to Configure in Homebridge
+
+In the Homebridge UI, when adding or editing a SwitchBot device, enter the **Encryption Key** and **Key ID** in the provided fields. These values will be securely used for BLE communication with your device.
+
+**Example device config excerpt:**
+
+```json
+{
+  "deviceId": "E7F8A1B2C3D4",
+  "deviceName": "SwitchBot Lock",
+  "enableBLE": true,
+  "encryptionKey": "0123456789abcdef0123456789abcdef",
+  "keyId": "01"
+}
+```
+
+#### Which Devices Require BLE Encryption?
+
+- SwitchBot Lock (and Lock Pro)
+- SwitchBot Curtain 3 (and some Curtain 2 with updated firmware)
+- Some sensors and new device models (see device info in app)
+
+If you are unsure, check your device's info in the SwitchBot app. If the fields are present, copy them into the plugin config.
+
+**Note:** If you enter an incorrect key or keyId, BLE communication will fail for that device. Double-check values if you encounter connection issues.
+
+---
+
 ## Supported IR Devices
 
 ### _(All IR Devices require [SwitchBot Hub 2](https://us.switch-bot.com/products/switchbot-hub-2), [SwitchBot Hub Mini 2](https://us.switch-bot.com/products/switchbot-hub-mini-2), [SwitchBot Hub 3](https://us.switch-bot.com/products/switchbot-hub-3), or [Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini))_
@@ -221,6 +284,64 @@
     - Supports Fan Device Type
   - Allows for On/Off Controls
 
+## Matter Platform
+
+### Batched refresh and API load control
+
+By default, the Matter platform uses a single batched refresh to update device status. You can tune or override this behavior with the following options under `options`:
+
+- `matterBatchEnabled` (boolean, default true): enable/disable platform-level batched refresh. Devices with a per-device `refreshRate` still run their own timers.
+- `matterBatchRefreshRate` (number, seconds): batch interval (falls back to `options.refreshRate`, then 300 if not set).
+- `matterBatchConcurrency` (number): limit of parallel OpenAPI status calls during a batch (default 5).
+- `matterBatchJitter` (number, seconds): random startup delay before the first batch to reduce synchronized spikes.
+
+Device-level override:
+
+- If a device sets `refreshRate` in its config, it uses a per-device timer and is excluded from the platform batch.
+
+Reliability and rate-limiting:
+
+- Each device status call retries with exponential backoff on non-success responses.
+- After exhausting retries, the device enters a short cooldown before being retried; cooldowns are persisted across restarts.
+- The batch worklist is randomized every cycle to further distribute API load.
+
+These controls keep API usage smooth and predictable while preserving per-device control when needed.
+
+## What's new with node-switchbot v4.0.0
+
+- Matter-first: when Homebridge Matter is available the plugin now prefers registering Matter accessories (with HAP fallback).
+- Hybrid client: the plugin uses `node-switchbot@^4.0.0` with BLE + OpenAPI discovery and OpenAPI fallback.
+- OpenAPI credentials: cloud discovery and cloud fallback paths require both `openApiToken` and `openApiSecret`.
+- UI always served: the plugin UI is packaged into `dist/homebridge-ui` and is always served when Homebridge UI support is present; there is no platform-level opt-out.
+- OpenAPI hardening: OpenAPI calls have AbortController timeouts, jittered exponential backoff, per-device retry limits and cooldowns, and safe response parsing for resilient behavior.
+- v4 resilience enabled in discovery: plugin discovery enables retry, circuit-breaker, and connection-intelligence flags from `node-switchbot` v4.
+
+- Write coalescing (debounce): command writes to the same device are coalesced by default to avoid command floods. Configure with `writeDebounceMs` (milliseconds, default 100). Set to `0` to disable coalescing.
+
+See `MIGRATION.md` for migration notes and recommended upgrade steps.
+
+## OpenAPI rate limiting and daily budget
+
+To prevent hitting SwitchBot’s daily OpenAPI limit, the plugin provides several platform-level options under `options`:
+
+- `dailyApiLimit` (number, default 10000): maximum OpenAPI requests per day that the plugin will allow.
+- `dailyApiReserveForCommands` (number, default 1000): requests reserved for user actions so background polling pauses before the hard limit.
+- `webhookOnlyOnReserve` (boolean, default false): when remaining budget reaches the reserve, pause background polling/discovery; webhooks and commands continue until the hard limit.
+- `dailyApiResetLocalMidnight` (boolean, default false): if true, resets the daily counter at local midnight; when false, resets at UTC midnight.
+
+Example (excerpt):
+
+```json
+{
+  "options": {
+    "dailyApiLimit": 10000,
+    "dailyApiReserveForCommands": 1000,
+    "webhookOnlyOnReserve": false,
+    "dailyApiResetLocalMidnight": true
+  }
+}
+```
+
 ## SwitchBot APIs
 
 - [OpenWonderLabs/node-switchbot](https://github.com/OpenWonderLabs/node-switchbot)
@@ -235,7 +356,7 @@
   ```
 
 - Notes:
-  - Added Lock Ultra (Cloud + BLE) support (requires `node-switchbot` v3.6.3).
+  - Added Lock Ultra (Cloud + BLE) support with `node-switchbot` v4.
 
 ## Community
 
