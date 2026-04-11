@@ -32,14 +32,12 @@ jobs:
     needs: lint
     permissions:
       id-token: write
-    uses: homebridge/.github/.github/workflows/npm-publish-esm.yml@latest
+    uses: homebridge/.github/.github/workflows/npm-publish-esm-oidc.yml@latest
     with:
       tag: 'beta'
       dynamically_adjust_version: true
       npm_version_command: 'pre'
       pre_id: 'beta'
-    secrets:
-      npm_auth_token: ${{ secrets.npm_token }}
 
   # 4️⃣ Create GitHub pre-release
   beta-pre-release:
@@ -52,20 +50,6 @@ jobs:
         **Beta Release**
         **Version**: v${{ needs.beta-publish.outputs.NPM_VERSION }}
         [How To Test Beta Releases](https://github.com/OpenWonderLabs/homebridge-switchbot/wiki/Beta-Version)
-
-  # 5️⃣ Post to Discord
-  beta-discord:
-    name: Discord Webhooks (Beta)
-    if: startsWith(github.ref_name, 'beta')
-    needs: [build_and_test, beta-publish]
-    uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
-    with:
-      title: "SwitchBot Beta Release"
-      description: |
-        Version `v${{ needs.beta-publish.outputs.NPM_VERSION }}`
-      url: "https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v${{ needs.beta-publish.outputs.NPM_VERSION }}"
-    secrets:
-      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
 
   # ─── STABLE RELEASE (branch: "latest") ───────────────────────────────────────
 
@@ -120,16 +104,16 @@ jobs:
       job_name: ${{ github.job }}
       run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-  # 6️⃣ Post to Discord
-  stable-discord:
-    name: Discord Webhooks (Stable)
-    if: github.ref_name == 'latest'
-    needs: [determine-release-type, update-version, publish-release]
+  # 6️⃣ Post to Discord (Beta + Stable)
+  discord:
+    name: Release Notifications
+    if: ${{ always() && ((startsWith(github.ref_name, 'beta') && needs.beta-publish.result == 'success') || (github.ref_name == 'latest' && needs.publish-release.result == 'success')) }}
+    needs: [beta-publish, update-version, publish-release]
     uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
     with:
-      title: "SwitchBot Release"
+      title: ${{ startsWith(github.ref_name, 'beta') && 'Homebridge SwitchBot Beta Release' || 'Homebridge SwitchBot Release' }}
       description: |
-        Version `v${{ needs.update-version.outputs.version }}`
-      url: "https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v${{ needs.update-version.outputs.version }}"
+        Version `v${{ startsWith(github.ref_name, 'beta') && needs.beta-publish.outputs.NPM_VERSION || needs.update-version.outputs.version }}`
+      url: "https://github.com/OpenWonderLabs/homebridge-switchbot/releases/tag/v${{ startsWith(github.ref_name, 'beta') && needs.beta-publish.outputs.NPM_VERSION || needs.update-version.outputs.version }}"
     secrets:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}

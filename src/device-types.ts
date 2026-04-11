@@ -95,21 +95,21 @@ export const DEVICE_TYPES = {
 } as const
 
 export const DEVICE_TYPE_NORMALIZATION_MAP: Record<string, string> = {
-  // --- node-switchbot beta new types normalization additions ---
+  // --- node-switchbot v4 normalization additions ---
   'hub mini': 'Hub Mini',
   'hub 3': 'Hub 3',
-  'keypad': 'Keypad', // node-switchbot beta
+  'keypad': 'Keypad',
   'plug mini': 'Plug Mini (US)', // fallback to US if region not specified
   'art frame': 'AI Art Frame',
   'rgbicww': 'RGBICWW Strip Light',
   'lock vision': 'Lock Vision Pro', // alias for new lock vision
   'lock pro': 'Smart Lock Pro',
-  'lock lite': 'Lock Lite', // node-switchbot beta
-  'circulator fan': 'Circulator Fan', // node-switchbot beta
+  'lock lite': 'Lock Lite',
+  'circulator fan': 'Circulator Fan',
   'smart thermostat radiator': 'Smart Radiator Thermostat',
   'climate panel': 'Home Climate Panel',
   'evaporative humidifier': 'Humidifier',
-  // --- end node-switchbot beta additions ---
+  // --- end node-switchbot v4 additions ---
   // Only keep the last occurrence for each key, all values canonical
   'air purifier pm2.5': 'Air Purifier PM2.5',
   'pan/tilt cam plus 3k': 'Pan/Tilt Cam Plus 3K',
@@ -150,7 +150,7 @@ export const DEVICE_TYPE_NORMALIZATION_MAP: Record<string, string> = {
   'rgbicww floor lamp': 'RGBICWW Floor Lamp',
   'rgbicww strip light': 'RGBICWW Strip Light',
   'strip light': 'Strip Light',
-  'strip light 3': 'Strip Light 3', // node-switchbot beta
+  'strip light 3': 'Strip Light 3',
 
   // Vacuum conversions
   'robot vacuum cleaner s1': 'Robot Vacuum Cleaner S1',
@@ -186,7 +186,7 @@ export const DEVICE_TYPE_NORMALIZATION_MAP: Record<string, string> = {
 
   // Migration mappings for invalid/legacy device types
   'lock vision pro': 'Lock Vision Pro', // Valid alias; map to canonical
-  // 'lock vision': 'Keypad Vision', // Invalid type (removed, now node-switchbot beta alias above)
+  // 'lock vision': 'Keypad Vision', // Invalid type (removed, now alias above)
   'lock touch': 'Keypad Touch', // Invalid type
 
   // Additional normalization for new/unknown types from logs

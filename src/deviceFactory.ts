@@ -1,5 +1,6 @@
-import type { DeviceType, SwitchBotPluginConfig } from './settings.js'
 import type { Logger } from 'homebridge'
+
+import type { DeviceType, SwitchBotPluginConfig } from './settings.js'
 
 import { DEVICE_TYPE_NORMALIZATION_MAP } from './device-types.js'
 import {
@@ -51,12 +52,12 @@ const DEVICE_CLASS_MAP: Record<string, any> = {
   'lightstrip': LightStripDevice,
   'motion': MotionSensorDevice,
   'contact': ContactSensorDevice,
-  'vacuum': VacuumDevice, // node-switchbot beta
+  'vacuum': VacuumDevice,
   // Canonical, normalized device type keys (lowercase, mapped to device classes)
   'video doorbell': GenericDevice,
-  'smart radiator thermostat': GenericDevice, // node-switchbot beta
+  'smart radiator thermostat': GenericDevice,
   'woiosensor': GenericDevice,
-  'garage door opener': GenericDevice, // node-switchbot beta
+  'garage door opener': GenericDevice,
   'air purifier table pm2.5': GenericDevice,
   'air purifier voc': GenericDevice,
   'air purifier table voc': GenericDevice,
@@ -65,9 +66,9 @@ const DEVICE_CLASS_MAP: Record<string, any> = {
   'meterpro(co2)': MeterDevice,
   'walletfinder': WalletFinderDevice,
   'plug': PlugDevice,
-  'plug mini (eu)': PlugMiniDevice, // node-switchbot beta
-  'plug mini (jp)': PlugMiniDevice, // node-switchbot beta
-  'plug mini (us)': PlugMiniDevice, // node-switchbot beta
+  'plug mini (eu)': PlugMiniDevice,
+  'plug mini (jp)': PlugMiniDevice,
+  'plug mini (us)': PlugMiniDevice,
   'relay switch 1pm': RelaySwitch1PMDevice,
   'relay switch 2pm': RelaySwitch1PMDevice,
   'k10+ pro': WoSweeperDevice,
@@ -77,26 +78,26 @@ const DEVICE_CLASS_MAP: Record<string, any> = {
   'ai hub': GenericDevice,
   'hub': GenericDevice,
   'hub 2': Hub2Device,
-  'hub 3': GenericDevice, // node-switchbot beta
-  'hub mini': GenericDevice, // node-switchbot beta
+  'hub 3': GenericDevice,
+  'hub mini': GenericDevice,
   'hub plus': GenericDevice,
   'indoor cam': GenericDevice,
   'pan/tilt cam': GenericDevice,
   'pan/tilt cam 2k': GenericDevice,
   'pan/tilt cam plus 2k': GenericDevice,
   'pan/tilt cam plus 3k': GenericDevice,
-  'humidifier': HumidifierDevice, // node-switchbot beta (Evaporative Humidifier)
-  'roller shade': RollerShadeDevice, // node-switchbot beta
-  'strip light 3': StripLightDevice, // node-switchbot beta
-  'circulator fan': FanDevice, // node-switchbot beta
-  'smart lock pro': LockDevice, // node-switchbot beta
-  'lock lite': LockDevice, // node-switchbot beta
-  'keypad': LockDevice, // node-switchbot beta
-  'lock vision pro': LockDevice, // node-switchbot beta
-  'floor lamp': LightDevice, // node-switchbot beta
-  'rgbicww floor lamp': LightStripDevice, // node-switchbot beta
-  'rgbicww strip light': LightStripDevice, // node-switchbot beta
-  'home climate panel': GenericDevice, // node-switchbot beta (Climate Panel)
+  'humidifier': HumidifierDevice, // Includes evaporative humidifier mapping
+  'roller shade': RollerShadeDevice,
+  'strip light 3': StripLightDevice,
+  'circulator fan': FanDevice,
+  'smart lock pro': LockDevice,
+  'lock lite': LockDevice,
+  'keypad': LockDevice,
+  'lock vision pro': LockDevice,
+  'floor lamp': LightDevice,
+  'rgbicww floor lamp': LightStripDevice,
+  'rgbicww strip light': LightStripDevice,
+  'home climate panel': GenericDevice, // Climate panel family
   'lock': LockDevice,
   'humidifier2': HumidifierDevice,
   'temperature': TemperatureSensorDevice,

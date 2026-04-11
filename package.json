@@ -93,26 +93,26 @@
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^2.2.1",
     "class-validator": "^0.15.1",
-    "node-switchbot": "^4.0.0-beta.16"
+    "node-switchbot": "^4.0.0"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^7.7.0",
-    "@types/debug": "^4.1.12",
+    "@antfu/eslint-config": "^8.1.1",
+    "@types/debug": "^4.1.13",
     "@types/fs-extra": "^11.0.4",
-    "@types/node": "^25.4.0",
+    "@types/node": "^25.4.2",
     "@types/semver": "^7.7.1",
     "@types/source-map-support": "^0.5.10",
-    "@vitest/coverage-v8": "^4.0.18",
-    "esbuild": "^0.27.3",
+    "@vitest/coverage-v8": "^4.1.4",
+    "esbuild": "^0.28.0",
     "eslint": "^10.0.3",
     "eslint-plugin-format": "^2.0.1",
     "eslint-plugin-html": "^8.1.4",
-    "homebridge": "^2.0.0-beta.77",
-    "homebridge-config-ui-x": "^5.19.0",
+    "eslint-plugin-perfectionist": "^5.8.0",
+    "homebridge": "^2.0.0-beta.86",
     "nodemon": "^3.1.14",
     "shx": "^0.4.0",
-    "typedoc": "^0.28.17",
-    "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
+    "typedoc": "^0.28.18",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.4"
   }
 }

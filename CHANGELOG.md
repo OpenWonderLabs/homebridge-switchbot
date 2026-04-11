@@ -1,30 +1,16 @@
 # Changelog
 
-## Unreleased — beta-4.3.3
-
-### Added
-- Matter support (child-bridge) with Matter-first registration and HAP fallback.
-- Hybrid `node-switchbot@4` client adapter (BLE + OpenAPI) with OpenAPI fallback.
-- Manual and automated E2E scripts for lights, fans, curtains, and locks (`scripts/e2e/*`).
-- Conditional Vitest E2E harness (`RUN_E2E=true`) and a manual GitHub Actions workflow to run E2E.
-
-### Changed
-- Centralized Matter cluster/attribute numeric ID maps in `src/utils.ts`.
-- Device descriptors refactored to use canonical Matter IDs.
-- OpenAPI fallback hardened with timeouts, retries, backoff, and per-device retry limits.
-
-### Tests
-- Added integration tests and a Matter test harness under `test/`.
-
-### Notes
-- This is a beta release; follow migration notes in MIGRATION.md before upgrading.
-# Changelog
-
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
 ### What's Changed
+- Upgrade `node-switchbot` dependency from v4 beta to stable `^4.0.0`.
+- Align SwitchBot client init options with stable v4 (`scanTimeout` and `enableConnectionIntelligence`).
+- Improve runtime use of node-switchbot v4 device manager by reusing managed devices and reducing redundant discovery calls.
+- Harden client teardown by cancelling and rejecting pending debounced writes during shutdown.
+- Refresh release docs from beta wording to stable v4 release wording.
+
 - Matter platform: register only devices discovered via the SwitchBot OpenAPI by default. Per-device config overrides (by deviceId) are correctly merged into discovered devices.
 - Add `options.allowConfigOnlyDevices` (boolean) to opt-in to registering devices that exist only in config (not discovered).
 - Add unit tests for per-device merging and config-only behavior.

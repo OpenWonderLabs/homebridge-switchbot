@@ -13,7 +13,7 @@ export interface ISwitchBotClient {
 }
 
 /**
- * Thin wrapper around node-switchbot v4.0.0-beta.2+
+ * Thin wrapper around node-switchbot v4.0.0+
  * Leverages upstream resilience features (retry, circuit breaker, connection intelligence)
  * while maintaining plugin-specific features like write debouncing and OpenAPI fallback.
  */
@@ -21,6 +21,8 @@ export class SwitchBotClient implements ISwitchBotClient {
   private cfg: SwitchBotPluginConfig
   private client: SwitchBot | null = null
   private writeDebounceMs = 100
+  private discoveryCacheTtlMs = 30_000
+  private lastDiscoveryAt = 0
   private logger: import('homebridge').Logger
   private pendingWrites: Map<string, { timer: any, body: any, resolvers: Array<{ resolve: (v: any) => void, reject: (e: any) => void }> }> = new Map()
 
@@ -33,24 +35,34 @@ export class SwitchBotClient implements ISwitchBotClient {
     if (typeof (cfg as any)?.writeDebounceMs === 'number') {
       this.writeDebounceMs = (cfg as any).writeDebounceMs
     }
+    if (typeof (cfg as any)?.discoveryCacheTtlMs === 'number') {
+      this.discoveryCacheTtlMs = Math.max(0, (cfg as any).discoveryCacheTtlMs)
+    }
   }
 
   async init(): Promise<void> {
+    if (this.client) {
+      return
+    }
+
     try {
       // Dynamic import of node-switchbot v4 with native resilience features
       const { SwitchBot } = await import('node-switchbot')
+      const rawNodeClientConfig = typeof (this.cfg as any)?.nodeClientConfig === 'object' ? (this.cfg as any).nodeClientConfig : {}
+      const scanTimeout = this.resolveScanTimeoutMs(rawNodeClientConfig)
       this.client = new SwitchBot({
         token: this.cfg.openApiToken,
         secret: this.cfg.openApiSecret,
-        // Enable all built-in resilience features from node-switchbot v4
+        // Enable built-in resilience features from node-switchbot v4.
         enableFallback: true, // Auto-fallback from BLE to API
         enableRetry: true, // Retry with exponential backoff
         enableCircuitBreaker: true, // Circuit breaker per connection type
-        enableMetrics: true, // Connection tracking and statistics
+        enableConnectionIntelligence: true, // Connection tracking and route preference
         enableBLE: this.cfg.enableBLE !== false, // Use config value, default true
-        scanDuration: 5000, // BLE scan duration in milliseconds
-        ...(typeof (this.cfg as any)?.nodeClientConfig === 'object' && (this.cfg as any).nodeClientConfig),
+        scanTimeout,
+        ...rawNodeClientConfig,
       })
+      this.lastDiscoveryAt = 0
       this.logger?.info?.('SwitchBot client initialized with native resilience features')
     } catch (e) {
       this.logger?.warn?.('Failed to load node-switchbot; will use OpenAPI fallback:', e)
@@ -61,8 +73,19 @@ export class SwitchBotClient implements ISwitchBotClient {
   async getDevice(id: string): Promise<any> {
     if (this.client) {
       try {
-        const devices = await this.client.discover()
-        return devices.find((d: any) => d.id === id)
+        const fromManager = this.getManagedDevice(id)
+        if (fromManager) {
+          return fromManager
+        }
+
+        const devices = await this.ensureDiscovered(false)
+        const fromDiscovery = devices.find((d: any) => d.id === id)
+        if (fromDiscovery) {
+          return fromDiscovery
+        }
+
+        const refreshDevices = await this.ensureDiscovered(true)
+        return refreshDevices.find((d: any) => d.id === id)
       } catch (e: any) {
         if (e instanceof SwitchbotAuthenticationError) {
           this.logger?.error?.(`Authentication error for getDevice(${id}):`, e.message)
@@ -85,7 +108,11 @@ export class SwitchBotClient implements ISwitchBotClient {
   async getDevices(): Promise<any[]> {
     if (this.client) {
       try {
-        return await this.client.discover()
+        const fromManager = this.getManagedDevices()
+        if (fromManager.length > 0) {
+          return fromManager
+        }
+        return await this.ensureDiscovered(false)
       } catch (e) {
         this.logger?.warn?.('Client getDevices failed:', e)
         throw e
@@ -139,8 +166,7 @@ export class SwitchBotClient implements ISwitchBotClient {
       throw new SwitchbotOperationError('No SwitchBot client available for setDeviceState', 'no_client')
     }
     try {
-      const devices = await this.client.discover()
-      const device = devices.find((d: any) => d.id === id)
+      const device = await this.getDevice(id)
       if (!device) {
         throw new SwitchbotOperationError(`Device ${id} not found`, 'device_not_found')
       }
@@ -173,9 +199,68 @@ export class SwitchBotClient implements ISwitchBotClient {
   }
 
   async destroy(): Promise<void> {
+    for (const [, pending] of this.pendingWrites) {
+      clearTimeout(pending.timer)
+      const err = new SwitchbotOperationError('Client destroyed before pending write was sent', 'client_destroyed')
+      for (const r of pending.resolvers) {
+        r.reject(err)
+      }
+    }
+    this.pendingWrites.clear()
+
     if (this.client?.cleanup) {
       await this.client.cleanup()
     }
     this.client = null
+    this.lastDiscoveryAt = 0
+  }
+
+  private resolveScanTimeoutMs(rawNodeClientConfig: Record<string, any>): number {
+    if (typeof rawNodeClientConfig.scanTimeout === 'number' && Number.isFinite(rawNodeClientConfig.scanTimeout)) {
+      return Math.max(500, rawNodeClientConfig.scanTimeout)
+    }
+
+    if (typeof rawNodeClientConfig.scanDuration === 'number' && Number.isFinite(rawNodeClientConfig.scanDuration)) {
+      return Math.max(500, rawNodeClientConfig.scanDuration)
+    }
+
+    if (typeof (this.cfg as any)?.bleScanDurationSeconds === 'number') {
+      return Math.max(500, (this.cfg as any).bleScanDurationSeconds * 1000)
+    }
+
+    return 5000
+  }
+
+  private getManagedDevice(id: string): any {
+    const manager = (this.client as any)?.devices
+    if (manager?.get) {
+      return manager.get(id)
+    }
+    return undefined
+  }
+
+  private getManagedDevices(): any[] {
+    const manager = (this.client as any)?.devices
+    if (manager?.list) {
+      const list = manager.list()
+      return Array.isArray(list) ? list : []
+    }
+    return []
+  }
+
+  private async ensureDiscovered(force: boolean): Promise<any[]> {
+    if (!this.client) {
+      throw new SwitchbotOperationError('No SwitchBot client available', 'no_client')
+    }
+
+    const fromManager = this.getManagedDevices()
+    const cacheValid = this.discoveryCacheTtlMs > 0 && (Date.now() - this.lastDiscoveryAt) < this.discoveryCacheTtlMs
+    if (!force && cacheValid && fromManager.length > 0) {
+      return fromManager
+    }
+
+    const discovered = await this.client.discover()
+    this.lastDiscoveryAt = Date.now()
+    return discovered
   }
 }

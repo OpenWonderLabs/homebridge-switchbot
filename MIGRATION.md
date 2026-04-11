@@ -1,6 +1,6 @@
-# Migration notes — v4.3.x → beta
+# Migration notes — v4.3.x → v5.x
 
-This document highlights important changes and recommended actions before upgrading to the beta containing Matter and `node-switchbot@4` support.
+This document highlights important changes and recommended actions before upgrading to the release that includes Matter and stable `node-switchbot@4` support.
 
 1. Matter-first behavior
    - The plugin will prefer registering accessories with Homebridge's Matter child-bridge when `enableMatter: true` and the Homebridge Matter API is available.
@@ -28,7 +28,7 @@ This document highlights important changes and recommended actions before upgrad
    - Run the local test suite before upgrading to confirm TypeScript and unit tests pass: `npm run build && npm run test`.
 
 6. Rollback plan
-   - If the beta causes issues, revert to the previous stable plugin version by reinstalling the prior package or checking out the stable branch.
+   - If the upgrade causes issues, revert to the previous plugin version by reinstalling the prior package version.
 
 
 8. BLE encryption key and keyId fields
@@ -51,4 +51,4 @@ node scripts/generate-matter-maps.js ./zap-matter.json
 
 Place the official metadata JSON as `zap-matter.json` at the repo root (or pass a path) and commit the generated `src/matter-maps.generated.ts` to keep maps up to date.
 
-If you want, I can open a PR with these notes and the changelog stub targeting a beta branch I create next.
+These notes should be kept in sync with README and CHANGELOG updates for each release.

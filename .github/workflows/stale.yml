@@ -3,12 +3,10 @@ name: Stale workflow
 on:
   workflow_dispatch:
   schedule:
-    - cron: '45 11 * * *'
+    - cron: '45 7 * * *'
 
 jobs:
   stale:
-    uses: OpenWonderLabs/.github/.github/workflows/stale.yml@latest
-    with:
-      days-before-issue-stale: 15
+    uses: homebridge/.github/.github/workflows/stale.yml@latest
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}

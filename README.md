@@ -307,10 +307,10 @@ Reliability and rate-limiting:
 
 These controls keep API usage smooth and predictable while preserving per-device control when needed.
 
-## What's new in the v4 beta (summary)
+## What's new with node-switchbot v4.0.0
 
 - Matter-first: when Homebridge Matter is available the plugin now prefers registering Matter accessories (with HAP fallback).
-- Hybrid client: the plugin dynamically imports `node-switchbot@4` if available and falls back to OpenAPI when `openApiToken` is configured.
+- Hybrid client: the plugin uses `node-switchbot@^4.0.0` with BLE + OpenAPI discovery and OpenAPI fallback.
 - UI always served: the plugin UI is packaged into `dist/homebridge-ui` and is always served when Homebridge UI support is present; there is no platform-level opt-out.
 - OpenAPI hardening: OpenAPI calls have AbortController timeouts, jittered exponential backoff, per-device retry limits and cooldowns, and safe response parsing for resilient behavior.
 
@@ -354,7 +354,7 @@ Example (excerpt):
   ```
 
 - Notes:
-  - Added Lock Ultra (Cloud + BLE) support (requires `node-switchbot` v3.6.3).
+  - Added Lock Ultra (Cloud + BLE) support with `node-switchbot` v4.
 
 ## Community
 
