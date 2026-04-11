@@ -45,6 +45,31 @@ Click **Save Advanced Settings** to apply changes. These settings match the opti
 
 <!-- Optionally add a screenshot here -->
 
+### Per-Device External Publishing (HAP or Matter)
+
+Each device now supports an `externalPublishProtocol` option to control whether it is published as an external accessory.
+
+- `none` (default): normal platform registration behavior.
+- `hap`: publish this device as a HAP external accessory.
+- `matter`: publish this device as a Matter external accessory.
+
+Behavior notes:
+
+- This is configured per device in the Homebridge UI under **Publish as External Device** when adding or editing a device.
+- If the selected external publish API is not available on your Homebridge runtime, the plugin falls back to normal platform registration for that device.
+- Use `hap` for HAP-focused setups and `matter` for Matter-focused setups; leave as `none` unless you specifically want external accessory publishing.
+
+Example device config excerpt:
+
+```json
+{
+  "deviceId": "E7F8A1B2C3D4",
+  "configDeviceName": "Bedroom Bot",
+  "configDeviceType": "Bot",
+  "externalPublishProtocol": "hap"
+}
+```
+
 
 - ### If using OpenAPI Connection
   1. Download SwitchBot App on App Store or Google Play Store

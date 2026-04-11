@@ -1011,8 +1011,9 @@ export function renderDeviceList(list: any[]): void {
 
     const typeText = d.type ? `type: ${d.type}` : ''
     const connText = d.connectionPreference ? `conn: ${d.connectionPreference}` : ''
+    const extText = d.externalPublishProtocol && d.externalPublishProtocol !== 'none' ? `external: ${d.externalPublishProtocol}` : ''
     const roomText = d.room ? `room: ${d.room}` : ''
-    meta.textContent = [typeText, connText, roomText].filter(Boolean).join(' | ')
+    meta.textContent = [typeText, connText, extText, roomText].filter(Boolean).join(' | ')
 
     info.appendChild(nameContainer)
     info.appendChild(meta)
