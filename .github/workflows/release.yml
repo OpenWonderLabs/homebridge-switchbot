@@ -2,6 +2,9 @@ name: Release
 
 permissions:
   contents: read
+
+permissions:
+  contents: read
   packages: read
 
 on:
