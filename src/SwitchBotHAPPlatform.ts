@@ -4,7 +4,7 @@ import type { API, Logger, PlatformConfig } from 'homebridge'
 import { createDevice } from './deviceFactory.js'
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js'
 import { SwitchBotClient } from './switchbotClient.js'
-import { normalizeTypeForMatter } from './utils.js'
+import { normalizeTypeForMatter, resolveExternalPublishProtocol } from './utils.js'
 
 /**
  * Homebridge platform class for SwitchBot HAP (HomeKit Accessory Protocol) integration.
@@ -140,7 +140,7 @@ export class SwitchBotHAPPlatform {
     }
 
     const devices = (this.config as any)?.devices ?? []
-    const createdDevices: { created: any, d: any, type: string }[] = []
+    const createdDevices: { created: any, d: any, type: string, externalPublishProtocol: 'none' | 'hap' | 'matter' }[] = []
     for (const raw of devices) {
       // Normalize config keys from UI schema to internal shape (for cross-platform consistency)
       const d: any = {
@@ -152,12 +152,13 @@ export class SwitchBotHAPPlatform {
         _raw: raw,
       }
       const type: string = normalizeTypeForMatter(d.type)
+      const externalPublishProtocol = resolveExternalPublishProtocol(raw)
       const deviceOpts: any = { id: d.id, type, name: d.name, encryptionKey: d.encryptionKey, keyId: d.keyId, log: this.log }
       this.log.debug(`[HAP/Debug] Device options for ${d.name ?? d.id}:`, JSON.stringify(deviceOpts, null, 2))
       try {
         const created = await createDevice(deviceOpts, this.config, false)
         this.devices.push(created)
-        createdDevices.push({ created, d, type })
+        createdDevices.push({ created, d, type, externalPublishProtocol })
       } catch (e: any) {
         this.log.error(`Failed to create HAP device ${d.id}:`, e instanceof Error ? e.stack || e.message : e)
       }
@@ -188,14 +189,15 @@ export class SwitchBotHAPPlatform {
    *
    * If the Homebridge HAP API is not available, registration is skipped and a log message is emitted.
    */
-  private async registerHAPAccessories(createdDevices: { created: any, d: any, type: string }[]): Promise<void> {
-    if (!this.api || !(this.api as any).hap || typeof (this.api as any).registerPlatformAccessories !== 'function') {
+  private async registerHAPAccessories(createdDevices: { created: any, d: any, type: string, externalPublishProtocol: 'none' | 'hap' | 'matter' }[]): Promise<void> {
+    if (!this.api || !(this.api as any).hap || typeof (this.api as any).hap.registerPlatformAccessories !== 'function') {
       this.log.info('HAP API not available to register accessories')
       return
     }
     const hap = (this.api as any).hap
     const accessoriesToRegister: any[] = []
-    for (const { created, d, type } of createdDevices) {
+    const externalAccessoriesToPublish: any[] = []
+    for (const { created, d, type, externalPublishProtocol } of createdDevices) {
       try {
         const uuid = hap.uuid.generate(`${d.id}`)
         let accessory: any = this.accessories.get(uuid)
@@ -220,7 +222,11 @@ export class SwitchBotHAPPlatform {
           } catch (e) {
             // ignore context failures
           }
-          accessoriesToRegister.push(accessory)
+          if (externalPublishProtocol === 'hap') {
+            externalAccessoriesToPublish.push(accessory)
+          } else {
+            accessoriesToRegister.push(accessory)
+          }
           this.accessories.set(uuid, accessory)
         } else {
           try {
@@ -298,6 +304,24 @@ export class SwitchBotHAPPlatform {
     } else {
       this.log.info('No HAP accessories to register')
     }
+    if (externalAccessoriesToPublish.length > 0) {
+      if (typeof (this.api as any).publishExternalAccessories === 'function') {
+        try {
+          (this.api as any).publishExternalAccessories(PLUGIN_NAME, externalAccessoriesToPublish)
+          this.log.info(`Published ${externalAccessoriesToPublish.length} HAP external accessory(ies) with Homebridge`)
+        } catch (e) {
+          this.log.warn('Failed to publish HAP external accessories', e)
+        }
+      } else {
+        this.log.warn('HAP external accessory publishing API not available; falling back to regular platform registration')
+        try {
+          (this.api as any).registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, externalAccessoriesToPublish)
+          this.log.info(`Registered ${externalAccessoriesToPublish.length} HAP accessory(ies) as fallback (external publishing unavailable)`)
+        } catch (e) {
+          this.log.warn('Failed to register fallback HAP accessories', e)
+        }
+      }
+    }
   }
 
   /**
@@ -332,6 +356,7 @@ export class SwitchBotHAPPlatform {
       id: d.deviceId ?? d.id,
       type: d.configDeviceType ?? d.type,
       name: d.configDeviceName ?? d.name,
+      externalPublishProtocol: resolveExternalPublishProtocol(d),
     })))
   }
 

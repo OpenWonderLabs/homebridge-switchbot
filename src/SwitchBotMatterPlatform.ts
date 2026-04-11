@@ -4,7 +4,7 @@ import type { API, Logger, PlatformConfig } from 'homebridge'
 import { createDevice } from './deviceFactory.js'
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js'
 import { SwitchBotClient } from './switchbotClient.js'
-import { createMatterHandlers, DEVICE_MATTER_CLUSTERS, DEVICE_MATTER_SUPPORTED, normalizeTypeForMatter, resolveMatterDeviceType } from './utils.js'
+import { createMatterHandlers, DEVICE_MATTER_CLUSTERS, DEVICE_MATTER_SUPPORTED, normalizeTypeForMatter, resolveExternalPublishProtocol, resolveMatterDeviceType } from './utils.js'
 
 /**
  * Homebridge platform class for SwitchBot Matter integration.
@@ -113,7 +113,7 @@ export class SwitchBotMatterPlatform {
     }
 
     const devices = (this.config as any)?.devices ?? []
-    const createdDevices: { created: any, d: any, type: string, useMatter: boolean, matterAvailable: boolean }[] = []
+    const createdDevices: { created: any, d: any, type: string, useMatter: boolean, matterAvailable: boolean, externalPublishProtocol: 'none' | 'hap' | 'matter' }[] = []
     for (const raw of devices) {
       // Normalize config keys from UI schema to internal shape (for cross-platform consistency)
       const d: any = {
@@ -125,6 +125,7 @@ export class SwitchBotMatterPlatform {
         _raw: raw,
       }
       const type: string = normalizeTypeForMatter(d.type)
+      const externalPublishProtocol = resolveExternalPublishProtocol(raw)
       const deviceOpts: any = { id: d.id, type, name: d.name, encryptionKey: d.encryptionKey, keyId: d.keyId, log: this.log }
       this.log.debug(`[Matter/Debug] Device options for ${d.name ?? d.id}:`, JSON.stringify(deviceOpts, null, 2))
       const matterSupported = !!DEVICE_MATTER_SUPPORTED[(type || '').toLowerCase()]
@@ -134,7 +135,7 @@ export class SwitchBotMatterPlatform {
       try {
         const created = await createDevice(deviceOpts, this.config, useMatter)
         this.devices.push(created)
-        createdDevices.push({ created, d, type, useMatter, matterAvailable })
+        createdDevices.push({ created, d, type, useMatter, matterAvailable, externalPublishProtocol })
         if (useMatter) {
           this.log.info(`Prepared Matter accessory for ${d.id} (${type})${matterAvailable ? ' (auto-detected)' : ' (manually enabled)'}`)
         } else {
@@ -179,14 +180,15 @@ export class SwitchBotMatterPlatform {
    * If the Homebridge Matter API is not available, registration is skipped and a log message is emitted.
    * Accessories that are not enabled for Matter are ignored.
    */
-  async registerMatterAccessories(createdDevices: { created: any, d: any, type: string, useMatter: boolean, matterAvailable: boolean }[]): Promise<void> {
+  async registerMatterAccessories(createdDevices: { created: any, d: any, type: string, useMatter: boolean, matterAvailable: boolean, externalPublishProtocol: 'none' | 'hap' | 'matter' }[]): Promise<void> {
     if (!this.api || !(this.api as any).matter || typeof (this.api as any).matter.registerPlatformAccessories !== 'function') {
       this.log.info('Homebridge Matter API not available; skipping Matter accessory registration')
       return
     }
     const matterApi = (this.api as any).matter
     const accessoriesToRegister: any[] = []
-    for (const { created, d, type, useMatter, matterAvailable } of createdDevices) {
+    const externalAccessoriesToPublish: any[] = []
+    for (const { created, d, type, useMatter, matterAvailable, externalPublishProtocol } of createdDevices) {
       // Only register accessories where Matter is enabled and supported
       if (!useMatter) {
         // Log reason for skipping registration
@@ -237,7 +239,11 @@ export class SwitchBotMatterPlatform {
             handlers: createdDesc.handlers || createMatterHandlers(this.log, d.id, type, (this.config as any)?._client) || undefined,
             context: { deviceId: d.id, type, created: true },
           }
-          accessoriesToRegister.push(accessory)
+          if (externalPublishProtocol === 'matter') {
+            externalAccessoriesToPublish.push(accessory)
+          } else {
+            accessoriesToRegister.push(accessory)
+          }
           this.accessories.set(uuid, accessory)
         } else {
           // Ensure context and update properties for restored accessory
@@ -260,7 +266,11 @@ export class SwitchBotMatterPlatform {
           accessory.handlers = createdDesc.handlers || createMatterHandlers(this.log, d.id, type, (this.config as any)?._client) || undefined
           accessory.displayName = createdDesc.name || d.name || type
           accessory.UUID = accessory.UUID || accessory.uuid || uuid
-          accessoriesToRegister.push(accessory)
+          if (externalPublishProtocol === 'matter') {
+            externalAccessoriesToPublish.push(accessory)
+          } else {
+            accessoriesToRegister.push(accessory)
+          }
           this.accessories.set(accessory.UUID || uuid, accessory)
         }
         this.log.info(`Created/updated Matter accessory ${d.id} (${type})`)
@@ -278,6 +288,49 @@ export class SwitchBotMatterPlatform {
     } else {
       this.log.info('No Matter accessories to register')
     }
+    if (externalAccessoriesToPublish.length > 0) {
+      try {
+        if (typeof matterApi.publishExternalAccessories === 'function') {
+          await matterApi.publishExternalAccessories(PLUGIN_NAME, externalAccessoriesToPublish)
+          this.log.info(`Published ${externalAccessoriesToPublish.length} Matter external accessory(ies) with Homebridge`)
+        } else if (typeof matterApi.registerExternalAccessories === 'function') {
+          await matterApi.registerExternalAccessories(PLUGIN_NAME, PLATFORM_NAME, externalAccessoriesToPublish)
+          this.log.info(`Registered ${externalAccessoriesToPublish.length} Matter external accessory(ies) with Homebridge`)
+        } else if (await this.publishMatterExternalAccessories(externalAccessoriesToPublish)) {
+          this.log.info(`Published ${externalAccessoriesToPublish.length} Matter external accessory(ies) with Homebridge`)
+        } else {
+          this.log.warn('Matter external accessory publishing API not available; falling back to regular platform registration')
+          await matterApi.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, externalAccessoriesToPublish)
+          this.log.info(`Registered ${externalAccessoriesToPublish.length} Matter accessory(ies) as fallback (external publishing unavailable)`)
+        }
+      } catch (e) {
+        this.log.warn('Failed to publish/register Matter external accessories', e)
+      }
+    }
+  }
+
+  private async publishMatterExternalAccessories(accessories: any[]): Promise<boolean> {
+    const api = this.api as any
+    if (!api || typeof api.emit !== 'function') {
+      return false
+    }
+
+    const pendingRegistrations = api._pendingExternalRegistrations
+    if (!(pendingRegistrations instanceof Map) && pendingRegistrations !== undefined) {
+      return false
+    }
+
+    const registrationId = `${PLUGIN_NAME}-${Date.now()}-${Math.random()}`
+    const registrationPromise = new Promise<void>((resolve) => {
+      if (!(api._pendingExternalRegistrations instanceof Map)) {
+        api._pendingExternalRegistrations = new Map()
+      }
+      api._pendingExternalRegistrations.set(registrationId, resolve)
+    })
+
+    api.emit('publishExternalMatterAccessories', accessories, registrationId)
+    await registrationPromise
+    return true
   }
 
   /**
@@ -312,6 +365,7 @@ export class SwitchBotMatterPlatform {
       id: d.deviceId ?? d.id,
       type: d.configDeviceType ?? d.type,
       name: d.configDeviceName ?? d.name,
+      externalPublishProtocol: resolveExternalPublishProtocol(d),
     })))
   }
 

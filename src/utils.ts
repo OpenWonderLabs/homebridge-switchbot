@@ -1137,6 +1137,37 @@ export function normalizeConfig(raw?: PlatformConfig): SwitchBotPluginConfig {
   return { ...(raw as any) } as SwitchBotPluginConfig
 }
 
+/**
+ * Resolve the per-device external publish protocol from raw config.
+ * Accepts canonical values (`none`, `hap`, `matter`) and common aliases.
+ */
+export function resolveExternalPublishProtocol(rawDevice: any): 'none' | 'hap' | 'matter' {
+  const raw = String(
+    rawDevice?.externalPublishProtocol
+    ?? rawDevice?.externalDeviceProtocol
+    ?? rawDevice?.publishExternal
+    ?? rawDevice?.external
+    ?? 'none',
+  ).trim().toLowerCase()
+
+  if (raw === 'true') {
+    return 'hap'
+  }
+  if (raw === 'false') {
+    return 'none'
+  }
+  if (raw === 'homekit') {
+    return 'hap'
+  }
+  if (raw === 'none' || raw === 'off' || raw === 'disabled') {
+    return 'none'
+  }
+  if (raw === 'hap' || raw === 'matter') {
+    return raw
+  }
+  return 'none'
+}
+
 // Create a Proxy constructor that instantiates the right platform implementation at runtime.
 /**
  * Creates a proxy class that instantiates the correct platform implementation (HAP or Matter) at runtime.

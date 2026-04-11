@@ -189,7 +189,19 @@ export async function addDevice(
   deviceId: string,
   name: string,
   type: string,
-  options?: { address?: string, model?: string, rssi?: number, encryptionKey?: string, keyId?: string },
+  options?: {
+    address?: string
+    model?: string
+    rssi?: number
+    connectionPreference?: string
+    externalPublishProtocol?: string
+    room?: string
+    encryptionKey?: string
+    keyId?: string
+    refreshRate?: number
+    blePollingEnabled?: boolean
+    blePollIntervalMs?: number
+  },
 ): Promise<any> {
   if (typeof homebridge.getPluginConfig !== 'function' || typeof homebridge.updatePluginConfig !== 'function') {
     throw new TypeError('Homebridge UI API not available')
@@ -223,6 +235,24 @@ export async function addDevice(
   }
   if (options?.keyId) {
     newDevice.keyId = options.keyId
+  }
+  if (options?.connectionPreference) {
+    newDevice.connectionPreference = options.connectionPreference
+  }
+  if (options?.externalPublishProtocol) {
+    newDevice.externalPublishProtocol = options.externalPublishProtocol
+  }
+  if (options?.room) {
+    newDevice.room = options.room
+  }
+  if (typeof options?.refreshRate === 'number' && Number.isFinite(options.refreshRate)) {
+    newDevice.refreshRate = options.refreshRate
+  }
+  if (typeof options?.blePollingEnabled === 'boolean') {
+    newDevice.blePollingEnabled = options.blePollingEnabled
+  }
+  if (typeof options?.blePollIntervalMs === 'number' && Number.isFinite(options.blePollIntervalMs)) {
+    newDevice.blePollIntervalMs = options.blePollIntervalMs
   }
   config.devices.push(newDevice)
   await homebridge.updatePluginConfig(configArr)
