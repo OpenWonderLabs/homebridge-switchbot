@@ -481,3 +481,63 @@ ul.device-grid {
 .discovery-scanning-pulse {
   animation: pulse 1.5s ease-in-out infinite;
 }
+/* v4 config incompatibility warning banner */
+.v4-config-warning {
+  background: #7c3015;
+  color: #fff;
+  border: 1px solid #a04020;
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.v4-config-warning strong {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+
+.v4-config-warning p {
+  margin: 6px 0;
+}
+
+.v4-config-warning ul {
+  margin: 6px 0 6px 18px;
+  padding: 0;
+}
+
+.v4-config-warning li {
+  margin-bottom: 3px;
+}
+
+.v4-config-warning code {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 12px;
+  color: #ffd;
+}
+
+.v4-config-warning a {
+  color: #ffd;
+  text-decoration: underline;
+}
+
+@media (prefers-color-scheme: light) {
+  .v4-config-warning {
+    background: #fff3cd;
+    color: #7c3015;
+    border-color: #f0ad4e;
+  }
+
+  .v4-config-warning code {
+    background: rgba(124, 48, 21, 0.1);
+    color: #7c3015;
+  }
+
+  .v4-config-warning a {
+    color: #7c3015;
+  }
+}

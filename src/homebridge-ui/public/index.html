@@ -11,6 +11,29 @@
 <body>
   <h1>🤖 SwitchBot Configuration</h1>
 
+  <!-- v4 config incompatibility warning – shown dynamically by app.js -->
+  <div id="v4ConfigWarning" class="v4-config-warning" style="display: none">
+    <strong>⚠️ Incompatible v4 Configuration Detected</strong>
+    <p>
+      Your config.json appears to be in the <strong>v4 format</strong> (using <code>credentials</code> and
+      <code>options.devices</code> fields). This format is <strong>not compatible with v5 or newer</strong> of the
+      SwitchBot plugin. Devices will not be recognised until the config is updated.
+    </p>
+    <p>
+      Please update your config to the v5 format:
+    </p>
+    <ul>
+      <li>Move <code>credentials.token</code> → <code>openApiToken</code> (top level)</li>
+      <li>Move <code>credentials.secret</code> → <code>openApiSecret</code> (top level)</li>
+      <li>Move <code>options.devices</code> → <code>devices</code> (top level)</li>
+      <li>Rename per-device <code>connectionType</code> → <code>connectionPreference</code></li>
+      <li>Remove the <code>credentials</code> and <code>options</code> wrapper objects</li>
+    </ul>
+    <p>
+      See the <a href="https://github.com/OpenWonderLabs/homebridge-switchbot/blob/latest/MIGRATION.md" target="_blank" rel="noopener">Migration Guide</a> for full details.
+    </p>
+  </div>
+
   <div class="card compact">
     <h2>API Credentials</h2>
     <div class="credentials-row">
