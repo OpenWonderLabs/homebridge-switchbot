@@ -1,5 +1,6 @@
 // Fetch the list of configured devices from the Homebridge UI API
 import { isValidDeviceType, normalizeDeviceType } from '../../../device-types.js'
+import { isV4Config } from '../../utils/v4-detection.js'
 import './types.js'
 import { uiLog } from './logger.js'
 import { toastError } from './toast.js'
@@ -44,12 +45,7 @@ export async function detectV4Config(): Promise<boolean> {
     if (!config || typeof config !== 'object') {
       return false
     }
-    const hasCredentials = config.credentials !== undefined && typeof config.credentials === 'object'
-    const hasOptionsDevices
-      = config.options !== undefined
-      && typeof config.options === 'object'
-      && Array.isArray(config.options.devices)
-    return hasCredentials || hasOptionsDevices
+    return isV4Config(config)
   } catch (e) {
     uiLog.warn('Error detecting v4 config:', e)
     return false

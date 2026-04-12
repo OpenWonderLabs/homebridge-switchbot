@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { isV4Config } from '../../src/homebridge-ui/utils/config-parser.js'
+import { isV4Config } from '../../src/homebridge-ui/utils/v4-detection.js'
 
 describe('isV4Config', () => {
   it('returns false for null/undefined input', () => {

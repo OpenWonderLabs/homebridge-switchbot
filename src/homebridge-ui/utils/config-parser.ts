@@ -64,19 +64,7 @@ export function getAllDevices(platform: any): any[] {
  * under `options.devices`.  v5+ flattened these to `openApiToken`,
  * `openApiSecret`, and a root-level `devices` array.
  */
-export function isV4Config(platform: any): boolean {
-  if (!platform || typeof platform !== 'object') {
-    return false
-  }
-  // Presence of a `credentials` sub-object is the clearest v4 signal
-  const hasCredentials = platform.credentials !== undefined && typeof platform.credentials === 'object'
-  // Presence of `options.devices` is the other v4 signal
-  const hasOptionsDevices
-    = platform.options !== undefined
-    && typeof platform.options === 'object'
-    && Array.isArray(platform.options.devices)
-  return hasCredentials || hasOptionsDevices
-}
+export { isV4Config } from './v4-detection.js'
 
 /**
  * Get credential from platform config
