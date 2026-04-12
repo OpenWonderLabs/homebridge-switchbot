@@ -201,7 +201,7 @@ label {
 }
 
 input {
-  width: 100%;
+  margin-right: 4px;
   max-width: 400px;
   padding: 6px 8px;
   border: 1px solid #d1d5db;
