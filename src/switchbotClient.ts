@@ -166,35 +166,17 @@ export class SwitchBotClient implements ISwitchBotClient {
       throw new SwitchbotOperationError('No SwitchBot client available for setDeviceState', 'no_client')
     }
     try {
+      const device = await this.getDevice(id)
+      if (!device) {
+        throw new SwitchbotOperationError(`Device ${id} not found`, 'device_not_found')
+      }
+      const deviceType = (device.deviceType ?? '').toLowerCase()
       const command = body?.command
       if (!command) {
         throw new SwitchbotOperationError('No command specified in body', 'no_command')
       }
-
-      const device = await this.getDevice(id)
-      if (!device) {
-        // Device not found in node-switchbot (e.g. device type not yet mapped in node-switchbot's
-        // DEVICE_CLASS_MAP, such as "K10+ Pro"). Fall back to a direct OpenAPI call if credentials
-        // are available so commands still reach the physical device.
-        const apiClient = (this.client as any).getAPIClient?.()
-        if (apiClient && typeof apiClient.sendCommand === 'function') {
-          const parameter = body?.parameter ?? 'default'
-          this.logger?.debug?.(`[${id}] Device not found in node-switchbot; falling back to direct OpenAPI call for command '${command}'`)
-          return await apiClient.sendCommand(id, command, parameter)
-        }
-        throw new SwitchbotOperationError(`Device ${id} not found`, 'device_not_found')
-      }
-
-      const deviceType = (device.deviceType ?? '').toLowerCase()
       const handler = getDeviceCommandHandler(deviceType, command)
       if (!handler) {
-        // No mapped command handler — try the direct OpenAPI path as a final fallback.
-        const apiClient = (this.client as any).getAPIClient?.()
-        if (apiClient && typeof apiClient.sendCommand === 'function') {
-          const parameter = body?.parameter ?? 'default'
-          this.logger?.debug?.(`[${id}] No command handler for '${command}' on '${deviceType}'; falling back to direct OpenAPI call`)
-          return await apiClient.sendCommand(id, command, parameter)
-        }
         throw new SwitchbotOperationError(`Unsupported command '${command}' for device type '${deviceType}'`, 'unsupported_command')
       }
       this.logger?.debug?.(`[${id}] Calling mapped command '${command}' for device type '${deviceType}'`)
