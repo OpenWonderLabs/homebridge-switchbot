@@ -93,7 +93,7 @@
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^2.2.3",
     "class-validator": "^0.15.1",
-    "node-switchbot": "^4.0.0"
+    "node-switchbot": "^4.0.1"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^8.1.1",
