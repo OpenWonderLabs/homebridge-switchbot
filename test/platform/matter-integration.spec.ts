@@ -32,13 +32,7 @@ describe('matter integration platform', () => {
   })
 
   it('should publish per-device external Matter accessories via the Homebridge external event', async () => {
-    const emit = vi.fn((event: string, accessories: any[], registrationId: string) => {
-      if (event === 'publishExternalMatterAccessories') {
-        const resolve = apiWithMatter._pendingExternalRegistrations.get(registrationId)
-        resolve?.()
-      }
-      return true
-    })
+    const pendingExternalRegistrations = new Map()
     const apiWithMatter: any = {
       matter: {
         uuid: { generate: (value: string) => `m-${value}` },
@@ -48,9 +42,17 @@ describe('matter integration platform', () => {
       isMatterAvailable: () => true,
       isMatterEnabled: () => true,
       on: vi.fn(),
-      emit,
-      _pendingExternalRegistrations: new Map(),
+      emit: null as any,
+      _pendingExternalRegistrations: pendingExternalRegistrations,
     }
+    const emit = vi.fn((event: string, accessories: any[], registrationId: string) => {
+      if (event === 'publishExternalMatterAccessories') {
+        const resolve = pendingExternalRegistrations.get(registrationId)
+        resolve?.()
+      }
+      return true
+    })
+    apiWithMatter.emit = emit
     const platform = new TestMatterPlatform(logger, config, apiWithMatter)
     const created = {
       createAccessory: vi.fn(async () => ({
