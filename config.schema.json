@@ -172,6 +172,17 @@
               ],
               "default": "auto"
             },
+            "externalPublishProtocol": {
+              "type": "string",
+              "title": "Publish as External Device",
+              "description": "Publish this device as an external accessory for a specific protocol. Select HAP or Matter to expose it externally, or None to keep normal platform publishing.",
+              "enum": [
+                "none",
+                "hap",
+                "matter"
+              ],
+              "default": "none"
+            },
             "room": {
               "type": "string",
               "title": "Room",

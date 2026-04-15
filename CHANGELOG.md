@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. This project uses [Semantic Versioning](https://semver.org/)
 
+## [5.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v5.0.0...v5.1.0) (2026-04-XX)
+
+### What's Changed
+- Add per-device `externalPublishProtocol` option (`none`/`hap`/`matter`) to publish selected devices as external accessories for HAP or Matter.
+- Add Homebridge UI support to configure **Publish as External Device** when adding or editing devices.
+- Add migration/readme documentation for external publishing behavior and defaults.
+
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v5.0.0...v5.1.0
+
 ## [5.0.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.3.1...v5.0.0) (2026-04-10)
 
 ### ⚠️ Breaking Changes

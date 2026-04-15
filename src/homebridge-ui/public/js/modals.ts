@@ -6,6 +6,7 @@ export type ImportDiscoveredDeviceResult = {
   configDeviceType: string
   address?: string
   connectionPreference?: string
+  externalPublishProtocol?: string
   room?: string
   encryptionKey?: string
   keyId?: string
@@ -152,6 +153,30 @@ export async function importDiscoveredDevice(device: any): Promise<ImportDiscove
       opt.text = val.charAt(0).toUpperCase() + val.slice(1)
       opt.selected = (device.connectionPreference || 'auto') === val
       connectionPrefSelect.appendChild(opt)
+    })
+
+    // --- External Publish Protocol ---
+    const externalPublishLabel = document.createElement('label')
+    externalPublishLabel.textContent = 'Publish as External Device'
+    externalPublishLabel.style.display = 'block'
+    externalPublishLabel.style.marginBottom = '6px'
+    externalPublishLabel.style.fontWeight = '500'
+    externalPublishLabel.style.fontSize = '12px'
+    externalPublishLabel.style.color = '#6b7280'
+
+    const externalPublishSelect = document.createElement('select')
+    externalPublishSelect.style.width = '100%'
+    externalPublishSelect.style.marginBottom = '12px'
+    externalPublishSelect.style.padding = '8px 10px'
+    externalPublishSelect.style.borderRadius = '6px'
+    externalPublishSelect.style.fontSize = '14px'
+    externalPublishSelect.style.boxSizing = 'border-box'
+    ;['none', 'hap', 'matter'].forEach((val) => {
+      const opt = document.createElement('option')
+      opt.value = val
+      opt.text = val === 'none' ? 'None' : val.toUpperCase()
+      opt.selected = (device.externalPublishProtocol || 'none') === val
+      externalPublishSelect.appendChild(opt)
     })
 
     // --- Room ---
@@ -308,6 +333,7 @@ export async function importDiscoveredDevice(device: any): Promise<ImportDiscove
         configDeviceType: typeSelect.value || device.type,
         address: macInput.value || undefined,
         connectionPreference: connectionPrefSelect.value || undefined,
+        externalPublishProtocol: externalPublishSelect.value || 'none',
         room: roomInput.value || undefined,
         encryptionKey: encryptionKeyInput.value || undefined,
         keyId: keyIdInput.value || undefined,
@@ -331,6 +357,8 @@ export async function importDiscoveredDevice(device: any): Promise<ImportDiscove
     contentDiv.appendChild(typeSelect)
     contentDiv.appendChild(connectionPrefLabel)
     contentDiv.appendChild(connectionPrefSelect)
+    contentDiv.appendChild(externalPublishLabel)
+    contentDiv.appendChild(externalPublishSelect)
     contentDiv.appendChild(roomLabel)
     contentDiv.appendChild(roomInput)
     contentDiv.appendChild(macLabel)
@@ -573,6 +601,30 @@ export async function editDevice(device: any): Promise<void> {
     connectionPrefSelect.appendChild(opt)
   })
 
+  // --- External Publish Protocol ---
+  const externalPublishLabel = document.createElement('label')
+  externalPublishLabel.textContent = 'Publish as External Device'
+  externalPublishLabel.style.display = 'block'
+  externalPublishLabel.style.marginBottom = '6px'
+  externalPublishLabel.style.fontWeight = '500'
+  externalPublishLabel.style.fontSize = '12px'
+  externalPublishLabel.style.color = '#6b7280'
+
+  const externalPublishSelect = document.createElement('select')
+  externalPublishSelect.style.width = '100%'
+  externalPublishSelect.style.marginBottom = '12px'
+  externalPublishSelect.style.padding = '8px 10px'
+  externalPublishSelect.style.borderRadius = '6px'
+  externalPublishSelect.style.fontSize = '14px'
+  externalPublishSelect.style.boxSizing = 'border-box'
+  ;['none', 'hap', 'matter'].forEach((val) => {
+    const opt = document.createElement('option')
+    opt.value = val
+    opt.text = val === 'none' ? 'None' : val.toUpperCase()
+    opt.selected = (device.externalPublishProtocol || 'none') === val
+    externalPublishSelect.appendChild(opt)
+  })
+
   // --- Room ---
   const roomLabel = document.createElement('label')
   roomLabel.textContent = 'Room'
@@ -674,6 +726,7 @@ export async function editDevice(device: any): Promise<void> {
         configDeviceName: nameInput.value || undefined,
         configDeviceType: typeSelect.value,
         connectionPreference: connectionPrefSelect.value,
+        externalPublishProtocol: externalPublishSelect.value,
         room: roomInput.value || undefined,
         encryptionKey: encryptionKeyInput.value || undefined,
         keyId: keyIdInput.value || undefined,
@@ -689,6 +742,9 @@ export async function editDevice(device: any): Promise<void> {
       }
       if (params.room !== undefined) {
         options.room = params.room
+      }
+      if (params.externalPublishProtocol !== undefined) {
+        options.externalPublishProtocol = params.externalPublishProtocol
       }
       if (params.encryptionKey !== undefined) {
         options.encryptionKey = params.encryptionKey
@@ -739,6 +795,8 @@ export async function editDevice(device: any): Promise<void> {
   contentDiv.appendChild(typeSelect)
   contentDiv.appendChild(connectionPrefLabel)
   contentDiv.appendChild(connectionPrefSelect)
+  contentDiv.appendChild(externalPublishLabel)
+  contentDiv.appendChild(externalPublishSelect)
   contentDiv.appendChild(roomLabel)
   contentDiv.appendChild(roomInput)
   contentDiv.appendChild(encryptionKeyLabel)

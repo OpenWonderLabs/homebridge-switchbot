@@ -58,6 +58,15 @@ export function getAllDevices(platform: any): any[] {
 }
 
 /**
+ * Detect whether a platform config block is in the legacy v4 format.
+ *
+ * v4 configs stored credentials under a `credentials` sub-object and devices
+ * under `options.devices`.  v5+ flattened these to `openApiToken`,
+ * `openApiSecret`, and a root-level `devices` array.
+ */
+export { isV4Config } from './v4-detection.js'
+
+/**
  * Get credential from platform config
  */
 export function getCredential(platform: any, key: 'openApiToken' | 'openApiSecret'): string | undefined {

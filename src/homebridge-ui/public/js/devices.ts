@@ -26,8 +26,14 @@ export async function addDeviceToConfig(device: any, options: { refresh?: boolea
       address: importValues.address,
       model: device.model,
       rssi: device.rssi,
+      connectionPreference: importValues.connectionPreference,
+      externalPublishProtocol: importValues.externalPublishProtocol,
+      room: importValues.room,
       encryptionKey: importValues.encryptionKey,
       keyId: importValues.keyId,
+      refreshRate: importValues.refreshRate,
+      blePollingEnabled: importValues.blePollingEnabled,
+      blePollIntervalMs: importValues.blePollIntervalMs,
     })
     uiLog.info('Add device response:', resp)
 
