@@ -927,6 +927,7 @@ export function renderDeviceList(list: any[]): void {
 
   status.textContent = `Found ${list.length} device(s)`
   ul.classList.add('device-grid')
+  ul.style.padding = '0'
   ul.innerHTML = ''
 
   // Show remove all button when devices exist
@@ -941,6 +942,7 @@ export function renderDeviceList(list: any[]): void {
     li.style.display = 'flex'
     li.style.flexDirection = 'column'
     li.style.alignItems = 'stretch'
+    li.style.padding = '5px 8px'
     li.style.marginBottom = '0'
 
     const info = document.createElement('div')
