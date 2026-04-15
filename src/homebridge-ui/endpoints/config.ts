@@ -4,7 +4,7 @@ import { RequestError } from '@homebridge/plugin-ui-utils'
 import fs from 'node:fs/promises'
 
 import { isValidDeviceType } from '../../device-types.js'
-import { getAllDevices, SWITCHBOT_PLATFORM_REGEX } from '../utils/config-parser.js'
+import { getAllDevices, isV4Config, SWITCHBOT_PLATFORM_REGEX } from '../utils/config-parser.js'
 import { validateAndMigrateDeviceType } from '../utils/device-migration.js'
 import { uiLog } from '../utils/logger.js'
 
@@ -31,6 +31,7 @@ export function registerConfigEndpoints(server: HomebridgePluginUiServer) {
         typeValidationWarning?: string
       }> = []
       const invalidTypeDevices: Array<{ name: string, type: string, suggestion?: string }> = []
+      let v4ConfigDetected = false
 
       const platforms = Array.isArray(cfg.platforms) ? cfg.platforms : []
       for (const p of platforms) {
@@ -39,6 +40,12 @@ export function registerConfigEndpoints(server: HomebridgePluginUiServer) {
           // Match known SwitchBot platform identifiers
           if (!platformName || !SWITCHBOT_PLATFORM_REGEX.test(String(platformName))) {
             continue
+          }
+
+          // Detect legacy v4 config format
+          if (isV4Config(p)) {
+            v4ConfigDetected = true
+            uiLog.warn('Detected legacy v4 config format (credentials/options.devices). This config is not compatible with v5+. Please migrate to the v5 config format.')
           }
 
           const devices = getAllDevices(p)
@@ -94,11 +101,12 @@ export function registerConfigEndpoints(server: HomebridgePluginUiServer) {
         )
       }
 
-      uiLog.info(`GET /devices - Found ${found.length} devices in ${cfgPath}${invalidTypeDevices.length > 0 ? ` (${invalidTypeDevices.length} with validation warnings)` : ''}`)
+      uiLog.info(`GET /devices - Found ${found.length} devices in ${cfgPath}${invalidTypeDevices.length > 0 ? ` (${invalidTypeDevices.length} with validation warnings)` : ''}${v4ConfigDetected ? ' [v4 config detected]' : ''}`)
       return {
         success: true,
         data: found,
         ...(invalidTypeDevices.length > 0 && { validationWarnings: invalidTypeDevices }),
+        ...(v4ConfigDetected && { v4ConfigDetected: true }),
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
