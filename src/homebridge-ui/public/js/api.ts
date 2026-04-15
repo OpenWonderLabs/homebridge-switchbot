@@ -1,5 +1,6 @@
 // Fetch the list of configured devices from the Homebridge UI API
 import { isValidDeviceType, normalizeDeviceType } from '../../../device-types.js'
+import { isV4Config } from '../../utils/v4-detection.js'
 import './types.js'
 import { uiLog } from './logger.js'
 import { toastError } from './toast.js'
@@ -19,6 +20,35 @@ export async function fetchDevices(): Promise<any[]> {
     const msg = e instanceof Error ? e.message : String(e)
     uiLog.error('Error fetching devices:', msg)
     return []
+  }
+}
+
+/**
+ * Detect whether the current plugin config is in the legacy v4 format.
+ *
+ * v4 configs stored credentials under a `credentials` sub-object and devices
+ * under `options.devices`. v5+ flattened these to `openApiToken`,
+ * `openApiSecret`, and a root-level `devices` array.
+ *
+ * Returns true when a v4 config block is found, false otherwise.
+ */
+export async function detectV4Config(): Promise<boolean> {
+  try {
+    if (typeof homebridge.getPluginConfig !== 'function') {
+      return false
+    }
+    const configArr = await homebridge.getPluginConfig()
+    if (!Array.isArray(configArr)) {
+      return false
+    }
+    const config = configArr.find(isSwitchBotPlatformConfig)
+    if (!config || typeof config !== 'object') {
+      return false
+    }
+    return isV4Config(config)
+  } catch (e) {
+    uiLog.warn('Error detecting v4 config:', e)
+    return false
   }
 }
 
