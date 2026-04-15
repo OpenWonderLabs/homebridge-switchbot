@@ -15,5 +15,28 @@ describe('switchBotClient OpenAPI fallback', () => {
     expect((client as any).client).toBeNull()
   })
 
-  // Removed: HTTP fallback is no longer supported in SwitchBotClient
+  it('should call apiClient.sendCommand directly when device not found in node-switchbot (e.g. K10+ Pro)', async () => {
+    // Regression test for: K10+ Pro "device_not_found" because node-switchbot's DEVICE_CLASS_MAP
+    // does not have a "K10+ Pro" entry (only "Robot Vacuum Cleaner K10+ Pro").
+    // When getDevice() returns null, _doSetDeviceState must fall back to direct OpenAPI sendCommand.
+    const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
+    const client = new SwitchBotClient({ logger } as any)
+
+    const sendCommand = vi.fn().mockResolvedValue({ statusCode: 100, message: 'success', body: {} })
+    const apiClient = { sendCommand }
+
+    ;(client as any).client = {
+      devices: {
+        list: () => [],
+        get: () => undefined,
+      },
+      discover: vi.fn().mockResolvedValue([]), // K10+ Pro not in discovered list
+      getAPIClient: () => apiClient,
+    }
+
+    const result = await client.setDeviceState('360ABC', { command: 'start', parameter: 'default', commandType: 'command' })
+
+    expect(sendCommand).toHaveBeenCalledWith('360ABC', 'start', 'default')
+    expect(result).toBeDefined()
+  })
 })
