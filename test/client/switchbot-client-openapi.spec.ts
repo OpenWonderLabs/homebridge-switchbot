@@ -39,4 +39,30 @@ describe('switchBotClient OpenAPI fallback', () => {
     expect(sendCommand).toHaveBeenCalledWith('360ABC', 'start', 'default')
     expect(result).toBeDefined()
   })
+
+  it('should use direct OpenAPI when device is found but command has no mapped handler', async () => {
+    // Secondary fallback: device exists in node-switchbot but the command is not in deviceCommandMapper.
+    // In this case the plugin should still forward the command directly to the API.
+    const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
+    const client = new SwitchBotClient({ logger } as any)
+
+    const sendCommand = vi.fn().mockResolvedValue({ statusCode: 100, message: 'success', body: {} })
+    const apiClient = { sendCommand }
+
+    const foundDevice = { id: '360ABC', deviceType: 'some-future-device-type' }
+
+    ;(client as any).client = {
+      devices: {
+        list: () => [foundDevice],
+        get: (id: string) => (id === '360ABC' ? foundDevice : undefined),
+      },
+      discover: vi.fn().mockResolvedValue([foundDevice]),
+      getAPIClient: () => apiClient,
+    }
+
+    const result = await client.setDeviceState('360ABC', { command: 'customCommand', parameter: 'default', commandType: 'command' })
+
+    expect(sendCommand).toHaveBeenCalledWith('360ABC', 'customCommand', 'default')
+    expect(result).toBeDefined()
+  })
 })
