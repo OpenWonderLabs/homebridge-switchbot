@@ -7,13 +7,54 @@ on:
       - 'beta'
       - 'latest'
   workflow_dispatch:
+    inputs:
+      release_type:
+        description: Release channel
+        required: true
+        type: choice
+        options:
+          - latest
+          - beta
+          - alpha
+        default: latest
+      is_esm:
+        description: Package is ESM
+        required: true
+        type: boolean
+        default: true
+      version_override:
+        description: Exact version (for example 2.1.0). Leave empty for auto bump.
+        required: false
+        type: string
+      version_bump:
+        description: Auto bump type when version_override is empty
+        required: false
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+      max_attempts:
+        description: Max retries for prerelease collision handling
+        required: false
+        type: number
+        default: 5
+
+# Cancel any in-progress workflow for the same branch. A new push should
+# supersede the previous run rather than racing it to publish.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  # ─── BETA RELEASE (branches starting with "beta") ────────────────────────────
+  # ─── QUALITY GATE (all branches) ────────────────────────────────────────────
+  # Build and test run for EVERY push, regardless of branch. Both the beta
+  # and stable release paths depend on these passing before anything is
+  # published or version-bumped.
 
   # 1️⃣ Build and test
   build_and_test:
-    if: startsWith(github.ref_name, 'beta')
     uses: homebridge/.github/.github/workflows/nodejs-build-and-test.yml@latest
     with:
       enable_coverage: false
@@ -22,9 +63,11 @@ jobs:
 
   # 2️⃣ Lint
   lint:
-    if: startsWith(github.ref_name, 'beta')
     needs: build_and_test
     uses: homebridge/.github/.github/workflows/eslint.yml@latest
+
+
+  # ─── BETA RELEASE (branches starting with "beta") ────────────────────────────
 
   # 3️⃣ Publish beta to NPM (OIDC — id-token required here and in the reusable workflow)
   beta-publish:
@@ -54,23 +97,26 @@ jobs:
 
   # ─── STABLE RELEASE (branch: "latest") ───────────────────────────────────────
 
-  # 1️⃣ Determine release type, ESM status, and branch name
+  # 3️⃣ Determine release type, ESM status, and branch name
   determine-release-type:
     if: github.ref_name == 'latest'
+    needs: lint
     uses: homebridge/.github/.github/workflows/determine-release-type.yml@latest
     with:
       ref_name: ${{ github.ref_name }}
 
-  # 2️⃣ Update version and changelog using the scripts
+  # 4️⃣ Update version and changelog using the scripts
   update-version:
     if: github.ref_name == 'latest'
     needs: determine-release-type
     uses: homebridge/.github/.github/workflows/update-version.yml@latest
     with:
-      release_type: ${{ needs.determine-release-type.outputs.release_type }}
-      is_esm: ${{ needs.determine-release-type.outputs.is_esm == 'true' }}
+      release_type: ${{ needs.determine-release-type.outputs.release_type || inputs.release_type }}
+      is_esm: ${{ needs.determine-release-type.outputs.is_esm == 'true' || inputs.is_esm == 'true' }}
+      version_override: ${{ inputs.version_override }}
+      version_bump: ${{ inputs.version_bump }}
 
-  # 3️⃣ Publish to NPM and create GitHub release (OIDC — id-token required here and in the reusable workflow)
+  # 5️⃣ Publish to NPM and create GitHub release (OIDC — id-token required here and in the reusable workflow)
   publish-release:
     if: github.ref_name == 'latest'
     needs: [determine-release-type, update-version]
@@ -82,10 +128,13 @@ jobs:
       release_type: ${{ needs.determine-release-type.outputs.release_type }}
       version: ${{ needs.update-version.outputs.version }}
       is_esm: ${{ needs.determine-release-type.outputs.is_esm == 'true' }}
+      #version_override: ${{ inputs.version_override }}
+      #version_bump: ${{ inputs.version_bump }}
+      #max_attempts: ${{ inputs.max_attempts }}
     secrets:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  # 4️⃣ Promote branch if this is a prerelease (alpha/beta)
+  # 6️⃣ Promote branch if this is a prerelease (alpha/beta)
   promote-branch:
     if: ${{ github.ref_name == 'latest' && needs.determine-release-type.outputs.release_type != 'latest' && needs.determine-release-type.outputs.release_type != 'skip' }}
     needs: [determine-release-type, publish-release]
@@ -93,19 +142,19 @@ jobs:
     with:
       branch_name: ${{ needs.determine-release-type.outputs.branch_name }}
       release_type: ${{ needs.determine-release-type.outputs.release_type }}
-      is_esm: ${{ needs.determine-release-type.outputs.is_esm == 'true' }}
+      is_esm: ${{ needs.determine-release-type.outputs.is_esm == 'true' || inputs.is_esm == 'true' }}
 
-  # 5️⃣ Notify if any stable-release job fails
+  # 7️⃣ Notify if any job fails
   workflow-failure:
     if: failure()
-    needs: [determine-release-type, update-version, publish-release, promote-branch]
+    needs: [build_and_test, lint, determine-release-type, update-version, publish-release, promote-branch]
     uses: homebridge/.github/.github/workflows/report-failure.yml@latest
     with:
       workflow_name: ${{ github.workflow }}
       job_name: ${{ github.job }}
       run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-  # 6️⃣ Post to Discord (Beta + Stable)
+  # 8️⃣ Post to Discord (Beta + Stable)
   discord:
     name: Release Notifications
     if: ${{ always() && ((startsWith(github.ref_name, 'beta') && needs.beta-publish.result == 'success') || (github.ref_name == 'latest' && needs.publish-release.result == 'success')) }}
