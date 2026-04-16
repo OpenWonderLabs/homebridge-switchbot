@@ -125,7 +125,7 @@ jobs:
       contents: write
     uses: homebridge/.github/.github/workflows/publish-release.yml@latest
     with:
-      release_type: ${{ needs.determine-release-type.outputs.release_type }}
+      release_type: ${{ needs.determine-release-type.outputs.release_type || inputs.release_type }}
       version: ${{ needs.update-version.outputs.version }}
       is_esm: ${{ needs.determine-release-type.outputs.is_esm == 'true' }}
       version_override: ${{ inputs.version_override || '' }}
