@@ -10,10 +10,9 @@ function showToast(
     // Defensive: check for window and homebridge existence
     const hb = typeof window !== 'undefined' ? (window as any).homebridge : undefined
     const toast = hb && typeof hb.toast === 'object' ? hb.toast : undefined
-    const fn = toast && typeof toast[method] === 'function' ? toast[method] : undefined
-    if (fn) {
+    if (toast && typeof toast[method] === 'function') {
       try {
-        fn(message, title)
+        toast[method](message, title)
         return
       } catch (err) {
         uiLog.warn(`Toast ${method} threw:`, err)

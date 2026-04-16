@@ -119,7 +119,6 @@ export function renderSignalQualityBadge(rssi: number | undefined): HTMLElement 
     border-radius: 3px;
     font-size: 10px;
     font-weight: 600;
-    margin-left: 8px;
   `
   badge.title = quality.description
 
@@ -927,6 +926,7 @@ export function renderDeviceList(list: any[]): void {
 
   status.textContent = `Found ${list.length} device(s)`
   ul.classList.add('device-grid')
+  ul.style.padding = '0'
   ul.innerHTML = ''
 
   // Show remove all button when devices exist
@@ -941,6 +941,7 @@ export function renderDeviceList(list: any[]): void {
     li.style.display = 'flex'
     li.style.flexDirection = 'column'
     li.style.alignItems = 'stretch'
+    li.style.padding = '5px 8px'
     li.style.marginBottom = '0'
 
     const info = document.createElement('div')
@@ -950,14 +951,15 @@ export function renderDeviceList(list: any[]): void {
 
     const nameContainer = document.createElement('div')
     nameContainer.style.display = 'flex'
-    nameContainer.style.flexDirection = 'column'
-    nameContainer.style.alignItems = 'flex-start'
-    nameContainer.style.gap = '0'
+    nameContainer.style.alignItems = 'center'
+    nameContainer.style.marginBottom = '0'
+    nameContainer.style.flexWrap = 'wrap'
+    nameContainer.style.gap = '4px'
 
     const name = document.createElement('div')
     name.style.fontWeight = '500'
     name.style.fontSize = '13px'
-    name.textContent = d.name || d.id
+    name.textContent = d.configDeviceName || d.name || d.id
 
     const expandedDetails = document.createElement('div')
     expandedDetails.style.display = 'none'
@@ -978,25 +980,8 @@ export function renderDeviceList(list: any[]): void {
       expandBtn.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)'
     }
 
-    const code = document.createElement('code')
-    code.textContent = d.id
-    code.style.fontSize = '10px'
-    code.style.opacity = '0.75'
-    code.style.marginLeft = '0'
-    code.style.whiteSpace = 'normal'
-    code.style.overflowWrap = 'anywhere'
-    code.style.wordBreak = 'break-word'
-    code.style.maxWidth = '100%'
-
-    const headerRow = document.createElement('div')
-    headerRow.style.display = 'inline-flex'
-    headerRow.style.alignItems = 'center'
-    headerRow.style.gap = '4px'
-    headerRow.appendChild(name)
-    headerRow.appendChild(expandBtn)
-
-    nameContainer.appendChild(headerRow)
-    nameContainer.appendChild(code)
+    nameContainer.appendChild(name)
+    nameContainer.appendChild(expandBtn)
 
     // Add signal strength visualization if RSSI is available
     if (d.rssi !== undefined && d.rssi !== null && d.rssi !== 0) {
@@ -1005,14 +990,15 @@ export function renderDeviceList(list: any[]): void {
     }
 
     const meta = document.createElement('div')
-    meta.style.opacity = '0.75'
-    meta.style.marginTop = '0'
-    meta.style.fontSize = '11px'
+    meta.style.opacity = '0.7'
+    meta.style.fontSize = '10px'
+    meta.style.fontFamily = 'monospace'
 
-    const typeText = d.type ? `type: ${d.type}` : ''
-    const connText = d.connectionPreference ? `conn: ${d.connectionPreference}` : ''
-    const roomText = d.room ? `room: ${d.room}` : ''
-    meta.textContent = [typeText, connText, roomText].filter(Boolean).join(' | ')
+    const id = `ID: ${d.deviceId || d.id}`
+    const typeText = d.configDeviceType || d.type ? `Type: ${d.configDeviceType || d.type}` : ''
+    const connText = d.connectionPreference ? `Conn: ${d.connectionPreference}` : ''
+    const roomText = d.room ? `Room: ${d.room}` : ''
+    meta.textContent = [id, typeText, connText, roomText].filter(Boolean).join(' | ')
 
     info.appendChild(nameContainer)
     info.appendChild(meta)
