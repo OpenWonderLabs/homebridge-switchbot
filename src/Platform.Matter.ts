@@ -1,5 +1,6 @@
-import type { SwitchBotPluginConfig } from './settings.js'
 import type { API, Logger, PlatformConfig } from 'homebridge'
+
+import type { SwitchBotPluginConfig } from './settings.js'
 
 import { createDevice } from './deviceFactory.js'
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js'
