@@ -240,7 +240,22 @@ export async function addDevicesInBulk(
   if (!resp || resp.success === false) {
     throw new Error(resp?.data?.message || 'Bulk add failed')
   }
-  return resp.data || resp
+  return normalizeBulkAddDevicesResponse(resp)
+}
+
+export function normalizeBulkAddDevicesResponse(resp: any): any {
+  const payload = resp?.data && typeof resp.data === 'object' ? resp.data : resp
+  const addedCount = Number(payload?.addedCount ?? payload?.added ?? 0)
+  const skippedCount = Number(payload?.skippedCount ?? payload?.skipped ?? 0)
+  const updatedCount = Number(payload?.updatedCount ?? payload?.updated ?? 0)
+
+  return {
+    ...payload,
+    success: resp?.success ?? true,
+    addedCount,
+    skippedCount,
+    updatedCount,
+  }
 }
 
 export async function updateDevice(
