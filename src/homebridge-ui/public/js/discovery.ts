@@ -394,7 +394,6 @@ function setDiscoveryGroupExpanded(groupKey: string, expanded: boolean): void {
 
 export async function discoverDevices(): Promise<void> {
   const btn = document.getElementById('discoverBtn') as HTMLButtonElement
-  const cancelBtn = document.getElementById('cancelDiscoverBtn') as HTMLButtonElement | null
   const status = document.getElementById('discoverStatus')
   const phaseProgress = document.getElementById('discoverPhaseProgress') as HTMLElement | null
   const phaseFill = document.getElementById('discoverPhaseFill') as HTMLElement | null
@@ -424,7 +423,6 @@ export async function discoverDevices(): Promise<void> {
   const startedAt = Date.now()
   let phaseStartedAt = startedAt
   let phase = 'Preparing discovery...'
-  let cancelled = false
 
   // --- Real-time RSSI polling additions ---
   // (bleScanDurationSeconds is now only used in bleSettings below)
@@ -936,32 +934,8 @@ export async function discoverDevices(): Promise<void> {
       devicesFoundDisplay.classList.remove('discovery-scanning-pulse')
     }
 
-    if (cancelBtn) {
-      cancelBtn.style.display = 'inline-block'
-      cancelBtn.disabled = false
-      cancelBtn.onclick = () => {
-        cancelled = true
-        const totalSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000))
-        status.textContent = `Discovery cancelled (${totalSeconds}s total)`
-        if (phaseProgress) {
-          phaseProgress.style.display = 'none'
-        }
-        if (devicesFoundDisplay) {
-          devicesFoundDisplay.style.display = 'none'
-          devicesFoundDisplay.classList.remove('discovery-scanning-pulse')
-        }
-        cancelBtn.style.display = 'none'
-        btn.disabled = false
-        btn.textContent = '🔍 Discover Devices'
-        hideBusyUi()
-      }
-    }
-
     if (bleSettings.bleEnabled) {
       const bleDevicesRaw = await apiDiscoverDevices('ble', bleSettings)
-      if (cancelled) {
-        return
-      }
 
       discoveredDevices = dedupeById(bleDevicesRaw)
       uiLog.info('BLE discover response:', bleDevicesRaw)
@@ -988,9 +962,6 @@ export async function discoverDevices(): Promise<void> {
 
     try {
       const openApiDevicesRaw = await apiDiscoverDevices('openapi')
-      if (cancelled) {
-        return
-      }
 
       uiLog.info('OpenAPI discover response:', openApiDevicesRaw)
       discoveredDevices = mergeDiscoveredDevices(discoveredDevices, openApiDevicesRaw)
@@ -1096,9 +1067,6 @@ export async function discoverDevices(): Promise<void> {
     setDiscoveryCache(discoveredDevices)
     updateLastScannedStatus()
   } catch (e) {
-    if (cancelled) {
-      return
-    }
     uiLog.error('Discovery error:', e)
     status.textContent = `Error: ${e instanceof Error ? e.message : 'Discovery failed'}`
     status.classList.add('error')
@@ -1123,11 +1091,6 @@ export async function discoverDevices(): Promise<void> {
     }
     btn.disabled = false
     btn.textContent = '🔍 Discover Devices'
-    if (cancelBtn) {
-      cancelBtn.disabled = false
-      cancelBtn.style.display = 'none'
-      cancelBtn.onclick = null
-    }
   }
 }
 

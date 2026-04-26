@@ -1,3 +1,12 @@
+## [5.0.2](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.3.14...v5.0.2) (2026-04-26)
+
+
+### Bug Fixes
+
+* preserve LockTargetState during in-flight lock/unlock commands ([#1345](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1345)) ([cf6d7ae](https://github.com/OpenWonderLabs/homebridge-switchbot/commit/cf6d7aeb7d9d6a3ea4c26fb6abaa0ea39fb08d8e))
+
+
+
 ## [5.0.1](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.3.14...v5.0.1) (2026-04-17)
 
 
