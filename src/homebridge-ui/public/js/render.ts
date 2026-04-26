@@ -5,6 +5,22 @@ const SPACES_REGEX = /\s/g
 const CAMELCASE_REGEX = /([A-Z])/g
 const FIRST_CHAR_REGEX = /^./
 
+async function copyTextWithFallback(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text)
+  } catch {
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.setAttribute('readonly', '')
+    textarea.style.cssText = 'position:fixed;left:-9999px;opacity:0;pointer-events:none'
+    document.body.appendChild(textarea)
+    textarea.select()
+    textarea.setSelectionRange(0, textarea.value.length)
+    document.execCommand('copy')
+    textarea.remove()
+  }
+}
+
 /**
  * Get RSSI signal quality level and color based on dBm value
  * @param rssi Signal strength in dBm (typically -30 to -90)
@@ -994,7 +1010,8 @@ export function renderDeviceList(list: any[]): void {
     meta.style.fontSize = '10px'
     meta.style.fontFamily = 'monospace'
 
-    const id = `ID: ${d.deviceId || d.id}`
+    const deviceIdentifier = d.deviceId || d.id
+    const id = `ID: ${deviceIdentifier}`
     const typeText = d.configDeviceType || d.type ? `Type: ${d.configDeviceType || d.type}` : ''
     const connText = d.connectionPreference ? `Conn: ${d.connectionPreference}` : ''
     const roomText = d.room ? `Room: ${d.room}` : ''
@@ -1029,7 +1046,9 @@ export function renderDeviceList(list: any[]): void {
     copyBtn.style.fontSize = '11px'
     copyBtn.addEventListener('click', async () => {
       try {
-        await navigator.clipboard.writeText(d.id)
+        if (deviceIdentifier) {
+          await copyTextWithFallback(deviceIdentifier)
+        }
         copyBtn.textContent = 'Copied'
         copyBtn.classList.add('success')
         setTimeout(() => {
@@ -1058,8 +1077,8 @@ export function renderDeviceList(list: any[]): void {
 
     buttons.appendChild(editBtn)
     buttons.appendChild(copyBtn)
-    buttons.appendChild(createConnectionTestControls(d))
     buttons.appendChild(deleteBtn)
+    buttons.appendChild(createConnectionTestControls(d))
 
     li.appendChild(info)
     li.appendChild(buttons)
