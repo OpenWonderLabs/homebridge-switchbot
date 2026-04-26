@@ -1058,8 +1058,8 @@ export function renderDeviceList(list: any[]): void {
 
     buttons.appendChild(editBtn)
     buttons.appendChild(copyBtn)
-    buttons.appendChild(createConnectionTestControls(d))
     buttons.appendChild(deleteBtn)
+    buttons.appendChild(createConnectionTestControls(d))
 
     li.appendChild(info)
     li.appendChild(buttons)
