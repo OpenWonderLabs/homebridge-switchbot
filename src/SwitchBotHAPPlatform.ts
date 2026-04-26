@@ -189,7 +189,7 @@ export class SwitchBotHAPPlatform {
    * If the Homebridge HAP API is not available, registration is skipped and a log message is emitted.
    */
   private async registerHAPAccessories(createdDevices: { created: any, d: any, type: string }[]): Promise<void> {
-    if (!this.api || !(this.api as any).hap || typeof (this.api as any).hap.registerPlatformAccessories !== 'function') {
+    if (!this.api || !(this.api as any).hap || typeof (this.api as any).registerPlatformAccessories !== 'function') {
       this.log.info('HAP API not available to register accessories')
       return
     }
