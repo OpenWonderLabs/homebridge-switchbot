@@ -265,6 +265,26 @@
   <script type="module" src="js/app.js"></script>
   <script type="module" src="js/advanced-settings.js"></script>
   <script type="module" src="js/legacy-view.js"></script>
+  </body>
+
+  <!-- Ensure legacy/dynamic view buttons always work -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var legacyBtn = document.getElementById('legacyViewBtn');
+      var dynamicBtn = document.getElementById('dynamicViewBtn');
+      if (legacyBtn) {
+        legacyBtn.addEventListener('click', function() {
+          window.enableLegacyView && window.enableLegacyView();
+        });
+      }
+      if (dynamicBtn) {
+        dynamicBtn.addEventListener('click', function() {
+          window.disableLegacyView && window.disableLegacyView();
+        });
+      }
+    });
+  </script>
+  </html>
 </body>
 
 </html>
