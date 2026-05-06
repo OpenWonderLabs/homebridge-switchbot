@@ -22,13 +22,20 @@ function updateViewButtons() {
   }
 }
 
-document.getElementById('legacyViewBtn')?.addEventListener('click', () => {
-  enableLegacyView()
+document.addEventListener('DOMContentLoaded', () => {
+  const legacyBtn = document.getElementById('legacyViewBtn')
+  const dynamicBtn = document.getElementById('dynamicViewBtn')
+  if (legacyBtn) {
+    legacyBtn.addEventListener('click', () => {
+      enableLegacyView()
+      updateViewButtons()
+    })
+  }
+  if (dynamicBtn) {
+    dynamicBtn.addEventListener('click', () => {
+      disableLegacyView()
+      updateViewButtons()
+    })
+  }
   updateViewButtons()
 })
-document.getElementById('dynamicViewBtn')?.addEventListener('click', () => {
-  disableLegacyView()
-  updateViewButtons()
-})
-
-document.addEventListener('DOMContentLoaded', updateViewButtons)
