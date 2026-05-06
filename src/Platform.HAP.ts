@@ -1,5 +1,6 @@
-import type { SwitchBotPluginConfig } from './settings.js'
 import type { API, Logger, PlatformConfig } from 'homebridge'
+
+import type { SwitchBotPluginConfig } from './settings.js'
 
 import { createDevice } from './deviceFactory.js'
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js'
@@ -214,7 +215,9 @@ export class SwitchBotHAPPlatform {
           }
         }
         if (!accessory) {
-          accessory = new (this.api as any).platformAccessory(d.name || type, uuid)
+          // Use the PlatformAccessory constructor from the HAP API
+          const PlatformAccessory = (this.api as any).hap?.PlatformAccessory || (this.api as any).platformAccessory
+          accessory = new PlatformAccessory(d.name || type, uuid)
           try {
             accessory.context = accessory.context || {}
             accessory.context.deviceId = d.id

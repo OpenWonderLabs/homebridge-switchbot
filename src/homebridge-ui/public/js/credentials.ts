@@ -63,14 +63,20 @@ export async function saveCredentials(): Promise<void> {
     if (typeof homebridge.getPluginConfig !== 'function' || typeof homebridge.updatePluginConfig !== 'function') {
       throw new TypeError('Homebridge UI API not available')
     }
-    const configArr = await homebridge.getPluginConfig()
-    if (!Array.isArray(configArr) || configArr.length === 0) {
-      throw new Error('No plugin config found')
+    let configArr = await homebridge.getPluginConfig()
+    if (!Array.isArray(configArr)) {
+      configArr = []
     }
-    const config = configArr[0]
+    let idx = configArr.findIndex(c => (c.platform || c.name || '').toLowerCase() === 'switchbot')
+    if (idx === -1) {
+      // Add new SwitchBot platform config
+      configArr.push({ platform: 'SwitchBot' })
+      idx = configArr.length - 1
+    }
+    const config = configArr[idx]
     config.openApiToken = token
     config.openApiSecret = secret
-    await homebridge.updatePluginConfig([config])
+    await homebridge.updatePluginConfig(configArr)
     if (typeof homebridge.savePluginConfig === 'function') {
       await homebridge.savePluginConfig()
     }

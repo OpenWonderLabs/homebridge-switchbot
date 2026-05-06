@@ -1,3 +1,66 @@
+# Matter and HomeKit Integration
+
+## Matter Implementation
+This plugin supports dual-mode device registration:
+- **HAP mode** (HomeKit Accessory Protocol): Base implementation via `SwitchBotPlatform` class
+- **Matter mode**: Extended via `SwitchBotMatterPlatform` class that overrides device registration and processing
+
+When Homebridge's Matter API is available, `SwitchBotMatterPlatform` registers accessories with both HAP and Matter simultaneously. If the Matter API is not available, the plugin transparently falls back to HAP-only mode.
+
+## Matter Device Type Mapping
+All Matter device types use `api.matter.deviceTypes.*` objects from the homebridge-matter API. Device mapping aligns with the authoritative [homebridge-matter wiki](https://github.com/homebridge-plugins/homebridge-matter/wiki/Introduction) and Section 7 Sensors for sensor mapping.
+
+| Device Type         | HAP Service                  | Matter DeviceType      | Matter Clusters         |
+|---------------------|-----------------------------|-----------------------|-------------------------|
+| Bot                 | Switch                      | `OnOffSwitch`         | onOff                  |
+| Curtain             | WindowCovering              | `WindowCovering`      | windowCovering         |
+| Contact Sensor      | ContactSensor               | `ContactSensor`       | contactSensor          |
+| Motion Sensor       | MotionSensor                | `OccupancySensor`     | occupancySensing       |
+| Meter/Hygrometer    | HumiditySensor, TemperatureSensor | `TemperatureSensor`, `HumiditySensor` | temperatureMeasurement, relativeHumidityMeasurement |
+| Lock                | LockMechanism               | `DoorLock`            | doorLock               |
+| Light/Fan/Outlet    | Lightbulb, Fan, Outlet      | `DimmableLight`, `OnOffLight`, `Fan` | onOff, levelControl   |
+| IR Devices          | Various (see IR mapping)    | (varies)              | (varies)               |
+
+## Authoritative Matter References
+
+1. https://matter-js.github.io/docs/index.html
+2. https://github.com/homebridge-plugins/homebridge-matter: Official Homebridge Matter plugin repository with extensive documentation and examples
+    - For all Matter cluster, attribute, and device type specifications, use the official homebridge-matter wiki:
+       - [Introduction](https://github.com/homebridge-plugins/homebridge-matter/wiki/Introduction)
+       - [Core Concepts](https://github.com/homebridge-plugins/homebridge-matter/wiki/Core-Concepts)
+       - [Getting Started](https://github.com/homebridge-plugins/homebridge-matter/wiki/Getting-Started)
+       - [State Management](https://github.com/homebridge-plugins/homebridge-matter/wiki/State-Management)
+       - [Monitoring External Changes](https://github.com/homebridge-plugins/homebridge-matter/wiki/Monitoring-External-Changes)
+       - [Best Practices](https://github.com/homebridge-plugins/homebridge-matter/wiki/Best-Practices)
+       - [Advanced Patterns](https://github.com/homebridge-plugins/homebridge-matter/wiki/Advanced-Patterns)
+       - [API Reference](https://github.com/homebridge-plugins/homebridge-matter/wiki/API-Reference)
+       - [Matter Types](https://github.com/homebridge-plugins/homebridge-matter/wiki/Matter-Types)
+       - [Value Conversions](https://github.com/homebridge-plugins/homebridge-matter/wiki/Value-Conversions)
+    - **Device References:**
+       - [Lighting Devices (§4)](https://github.com/homebridge-plugins/homebridge-matter/wiki/Section-4-Lighting) — DimmableLight, OnOffLight
+       - [Switches (§6)](https://github.com/homebridge-plugins/homebridge-matter/wiki/Section-6-Switches) — OnOffSwitch
+       - [Sensors (§7)](https://github.com/homebridge-plugins/homebridge-matter/wiki/Section-7-Sensors) — OccupancySensor, ContactSensor
+       - [Closure Devices (§8)](https://github.com/homebridge-plugins/homebridge-matter/wiki/Section-8-Closure) — WindowCovering
+
+# Changelog Format Requirements
+
+When generating a changelog release entry, always use this exact structure:
+
+1. Release header with compare URL using `compare/tag/vX.Y.Z`:
+
+```md
+## [X.Y.Z](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/tag/vX.Y.Z) (YYYY-MM-DD)
+```
+
+2. Standard sections as needed (`### Bug Fixes`, `### Enhancements`, `### Documentation`, etc.).
+
+3. End each release entry with a full changelog comparison URL to the previous version:
+
+```md
+**Full Changelog**: https://github.com/OpenWonderLabs/homebridge-switchbot/compare/vX.Y.(Z-1)...vX.Y.Z
+```
+
+Do not omit either URL line when creating a new release entry.
 # Homebridge SwitchBot Plugin Development Guide
 
 Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { SwitchBotHAPPlatform } from '../../src/SwitchBotHAPPlatform.js'
-import { SwitchBotMatterPlatform } from '../../src/SwitchBotMatterPlatform.js'
+import { SwitchBotHAPPlatform } from '../../src/Platform.HAP.js'
+import { SwitchBotMatterPlatform } from '../../src/Platform.Matter.js'
 
 describe('accessory restoration', () => {
   class TestHAPPlatform extends SwitchBotHAPPlatform {
