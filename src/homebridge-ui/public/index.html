@@ -11,10 +11,29 @@
 <body>
 
   <h1>🤖 SwitchBot Configuration</h1>
-  <div style="margin-bottom: 12px;">
-    <button id="legacyViewBtn" onclick="enableLegacyView()" style="font-size: 12px; padding: 4px 10px;">Legacy View</button>
-    <button id="dynamicViewBtn" onclick="disableLegacyView()" style="font-size: 12px; padding: 4px 10px; display: none;">Dynamic View</button>
+
+  <!-- ...existing code... -->
+
+  <!-- Centered legacy view button at the bottom -->
+  <div class="centered-toggle-btn">
+    <button id="legacyViewBtn" onclick="enableLegacyView()">Legacy View</button>
+    <button id="dynamicViewBtn" onclick="disableLegacyView()" style="display: none;">Dynamic View</button>
   </div>
+  <style>
+    .centered-toggle-btn {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      margin-top: 32px;
+      margin-bottom: 12px;
+      gap: 12px;
+    }
+    #legacyViewBtn, #dynamicViewBtn {
+      font-size: 12px;
+      padding: 4px 10px;
+    }
+  </style>
 
   <div id="dynamicUiContainer">
 

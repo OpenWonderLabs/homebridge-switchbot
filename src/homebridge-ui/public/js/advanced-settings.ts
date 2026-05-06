@@ -46,10 +46,11 @@ async function saveAdvancedSettings(): Promise<void> {
     if (!Array.isArray(pluginConfigBlocks) || !pluginConfigBlocks.length) {
       throw new Error('No plugin config blocks returned from Homebridge')
     }
-    // Find the SwitchBot config block
-    const idx = pluginConfigBlocks.findIndex(c => (c.platform || c.name || '').toLowerCase().includes('switchbot'))
+    // Find or add the SwitchBot config block
+    let idx = pluginConfigBlocks.findIndex(c => (c.platform || c.name || '').toLowerCase().includes('switchbot'))
     if (idx === -1) {
-      throw new Error('SwitchBot config not found')
+      pluginConfigBlocks.push({ platform: 'SwitchBot' })
+      idx = pluginConfigBlocks.length - 1
     }
     const config = pluginConfigBlocks[idx]
     // Update config values from UI

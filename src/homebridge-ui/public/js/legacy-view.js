@@ -22,13 +22,13 @@ function updateViewButtons() {
   }
 }
 
-window.enableLegacyView = function () {
+document.getElementById('legacyViewBtn')?.addEventListener('click', () => {
   enableLegacyView()
   updateViewButtons()
-}
-window.disableLegacyView = function () {
+})
+document.getElementById('dynamicViewBtn')?.addEventListener('click', () => {
   disableLegacyView()
   updateViewButtons()
-}
+})
 
 document.addEventListener('DOMContentLoaded', updateViewButtons)

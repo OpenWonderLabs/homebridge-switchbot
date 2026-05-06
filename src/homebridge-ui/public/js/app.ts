@@ -3,6 +3,29 @@ import { loadCredentialStatus, saveCredentials } from './credentials.js'
 import { initRemoveAllButton, loadConfiguredDevices } from './devices.js'
 import { discoverDevices, initializeDiscoverySettings } from './discovery.js'
 
+// Ensure SwitchBot config block exists before any UI actions
+async function ensureSwitchBotConfigBlock(): Promise<void> {
+  try {
+    if (typeof homebridge.getPluginConfig !== 'function' || typeof homebridge.updatePluginConfig !== 'function') {
+      return
+    }
+    let configArr = await homebridge.getPluginConfig()
+    if (!Array.isArray(configArr)) {
+      configArr = []
+    }
+    const idx = configArr.findIndex(c => (c.platform || c.name || '').toLowerCase().includes('switchbot'))
+    if (idx === -1) {
+      configArr.push({ platform: 'SwitchBot' })
+      await homebridge.updatePluginConfig(configArr)
+      if (typeof homebridge.savePluginConfig === 'function') {
+        await homebridge.savePluginConfig()
+      }
+    }
+  } catch (_e) {
+    // Ignore errors
+  }
+}
+
 ;
 
 (window as any).loadCredentialStatus = loadCredentialStatus
@@ -24,7 +47,9 @@ async function checkV4Config(): Promise<void> {
 }
 
 // Initialize on page load
+
 async function init(): Promise<void> {
+  await ensureSwitchBotConfigBlock()
   await checkV4Config()
   await loadCredentialStatus()
   await initializeDiscoverySettings()
