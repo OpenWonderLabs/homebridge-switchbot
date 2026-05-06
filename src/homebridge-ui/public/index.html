@@ -9,7 +9,14 @@
 </head>
 
 <body>
+
   <h1>🤖 SwitchBot Configuration</h1>
+  <div style="margin-bottom: 12px;">
+    <button id="legacyViewBtn" onclick="enableLegacyView()" style="font-size: 12px; padding: 4px 10px;">Legacy View</button>
+    <button id="dynamicViewBtn" onclick="disableLegacyView()" style="font-size: 12px; padding: 4px 10px; display: none;">Dynamic View</button>
+  </div>
+
+  <div id="dynamicUiContainer">
 
   <!-- v4 config incompatibility warning – shown dynamically by app.js -->
   <div id="v4ConfigWarning" class="v4-config-warning" style="display: none">
@@ -227,8 +234,18 @@
     </form>
   </div>
 
+  </div> <!-- end dynamicUiContainer -->
+
+  <div id="legacyViewContainer" style="display: none;">
+    <div class="card compact">
+      <h2>Legacy Config View</h2>
+      <div id="legacyConfigForm"></div>
+    </div>
+  </div>
+
   <script type="module" src="js/app.js"></script>
   <script type="module" src="js/advanced-settings.js"></script>
+  <script type="module" src="js/legacy-view.js"></script>
 </body>
 
 </html>

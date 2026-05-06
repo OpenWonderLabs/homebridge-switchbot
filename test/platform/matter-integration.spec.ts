@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { SwitchBotMatterPlatform } from '../../src/SwitchBotMatterPlatform.js'
+import { SwitchBotMatterPlatform } from '../../src/Platform.Matter.js'
 
 describe('matter integration platform', () => {
   class TestMatterPlatform extends SwitchBotMatterPlatform {

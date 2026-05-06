@@ -32,6 +32,7 @@
   },
   "keywords": [
     "homebridge-plugin",
+    "homebridge-matter",
     "switchbot",
     "lights",
     "fan",
@@ -92,28 +93,21 @@
   },
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^2.2.3",
-    "class-validator": "^0.15.1",
-    "node-switchbot": "^4.0.1"
+    "node-switchbot": "^4.0.2"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^8.2.0",
-    "@types/debug": "^4.1.13",
-    "@types/fs-extra": "^11.0.4",
     "@types/node": "^25.6.0",
-    "@types/semver": "^7.7.1",
-    "@types/source-map-support": "^0.5.10",
-    "@vitest/coverage-v8": "^4.1.4",
+    "@vitest/coverage-v8": "^4.1.5",
     "esbuild": "^0.28.0",
-    "eslint": "^10.2.0",
+    "eslint": "^10.3.0",
     "eslint-plugin-format": "^2.0.1",
-    "eslint-plugin-html": "^8.1.4",
-    "eslint-plugin-perfectionist": "^5.8.0",
-    "homebridge": "^2.0.0-beta.89",
-    "homebridge-config-ui-x": "^5.21.0",
+    "eslint-plugin-perfectionist": "^5.9.0",
+    "homebridge": "^2.0.1",
     "nodemon": "^3.1.14",
     "shx": "^0.4.0",
     "typedoc": "^0.28.19",
-    "typescript": "^6.0.2",
-    "vitest": "^4.1.4"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
   }
 }

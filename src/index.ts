@@ -4,9 +4,9 @@
  */
 import type { API } from 'homebridge'
 
+import { SwitchBotHAPPlatform } from './Platform.HAP.js'
+import { SwitchBotMatterPlatform } from './Platform.Matter.js'
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js'
-import { SwitchBotHAPPlatform } from './SwitchBotHAPPlatform.js'
-import { SwitchBotMatterPlatform } from './SwitchBotMatterPlatform.js'
 import { createPlatformProxy } from './utils.js'
 
 /**
