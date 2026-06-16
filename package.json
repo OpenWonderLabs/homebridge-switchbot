@@ -92,8 +92,13 @@
   },
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^2.2.3",
+    "@stoprocent/noble": "^2.4.0",
     "class-validator": "^0.15.1",
-    "node-switchbot": "file:vendor/node-switchbot"
+    "node-switchbot": "file:vendor/node-switchbot",
+    "undici": "^8.0.2"
+  },
+  "optionalDependencies": {
+    "@stoprocent/bluetooth-hci-socket": "^2.2.5"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^8.2.0",
