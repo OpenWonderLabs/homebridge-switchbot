@@ -78,7 +78,6 @@
     "plugin-ui": "mkdir -p ./dist/homebridge-ui/public && if [ -d ./src/homebridge-ui/public ]; then rsync -a ./src/homebridge-ui/public/ ./dist/homebridge-ui/public/; fi && node scripts/build-ui.js",
     "build": "npm run sync:device-types && npm run clean && tsc && npm run plugin-ui",
     "build:ui": "tsc --project tsconfig.ui.json",
-    "prepare": "npm run build",
     "prepublishOnly": "npm run lint && npm run build && npm run build:ui && npm run plugin-ui && npm run docs && npm run docs:lint",
     "postpublish": "npm run clean && npm ci",
     "clean": "shx rm -rf ./dist",

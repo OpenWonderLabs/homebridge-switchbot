@@ -1,0 +1,211 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SwitchBot Plugin UI</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body>
+  <h1>🤖 SwitchBot Configuration</h1>
+
+  <div class="card compact">
+    <h2>API Credentials</h2>
+    <div class="credentials-row">
+      <div class="form-group">
+        <label for="token">Token:</label>
+        <input type="password" id="token" placeholder="Enter token" />
+        <div class="status" id="tokenStatus"></div>
+      </div>
+      <div class="form-group">
+        <label for="secret">Secret:</label>
+        <input type="password" id="secret" placeholder="Enter secret" />
+        <div class="status" id="secretStatus"></div>
+      </div>
+    </div>
+    <button id="saveBtn" onclick="saveCredentials()">Save</button>
+    <div id="saveStatus"></div>
+  </div>
+
+  <div class="card compact">
+    <h2>Discover Devices</h2>
+    <div style="margin-bottom: 6px">
+      <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 11px">
+        <input type="checkbox" id="autoAddAllCheckbox" style="width: auto; margin: 0" />
+        <span>Auto-add all</span>
+        <span
+          title="When enabled, Discover immediately adds all found devices to your config. Existing devices are skipped automatically."
+          style="font-size: 11px; opacity: 0.7">ⓘ</span>
+      </label>
+      <div style="margin-top: 2px; margin-left: 22px; font-size: 10px; opacity: 0.75; line-height: 1.25">
+        Adds all discovered devices automatically; already configured devices are skipped.
+      </div>
+    </div>
+    <div class="discovery-settings-row" style="margin-bottom: 2px">
+      <label id="bleScanSetting" style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px">
+        <span>Scan:</span>
+        <select id="bleScanDurationSelect" style="font-size: 11px; padding: 2px 6px">
+          <option value="3">3s</option>
+          <option value="5" selected>5s</option>
+          <option value="10">10s</option>
+          <option value="15">15s</option>
+        </select>
+      </label>
+      <label id="bleTimeoutSetting" style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px">
+        <span>Timeout:</span>
+        <input id="bleTimeoutInput" type="number" min="3" max="30" step="1" value="8"
+          style="width: 56px; font-size: 11px; padding: 2px 4px" />
+        <span>s</span>
+      </label>
+      <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 11px">
+        <input type="checkbox" id="disableBleScanCheckbox" style="width: auto; margin: 0" />
+        <span>Disable BLE scan</span>
+      </label>
+    </div>
+    <div id="bluetoothStatus" style="margin-bottom: 4px; font-size: 10px; opacity: 0.8">Bluetooth: checking...</div>
+    <div class="discovery-settings-row" style="margin-bottom: 8px">
+      <div id="lastScannedStatus" style="font-size: 10px; opacity: 0.8; flex: 1 1 auto">Last scanned: never</div>
+      <label style="font-size: 11px">
+        Auto-refresh:
+        <select id="autoRefreshIntervalSelect" style="margin-left: 4px; font-size: 11px; padding: 2px 6px">
+          <option value="0" selected>Off</option>
+          <option value="30">30s</option>
+          <option value="60">1m</option>
+          <option value="300">5m</option>
+        </select>
+      </label>
+      <button id="refreshDiscoverBtn" class="secondary" style="padding: 4px 9px; font-size: 11px">Refresh</button>
+    </div>
+    <button id="discoverBtn" onclick="discoverDevices()" style="margin-bottom: 8px">
+      🔍 Discover
+    </button>
+    <div id="discoverStatus" style="margin-bottom: 6px; font-size: 11px"></div>
+    <div id="discoverDevicesFound" style="margin-bottom: 6px; font-size: 11px; display: none"></div>
+    <div id="discoverPhaseProgress" class="discover-phase-progress" style="display: none">
+      <div class="discover-phase-track">
+        <div id="discoverPhaseFill" class="discover-phase-fill"></div>
+      </div>
+      <div id="discoverPhaseLabel" class="discover-phase-label"></div>
+    </div>
+    <div id="discoveredList">
+      <h3 style="margin-top: 0; font-size: 12px; margin-bottom: 6px; font-weight: 600">Available Devices</h3>
+      <ul id="discoveredDevices" style="max-height: 300px; overflow-y: auto"></ul>
+    </div>
+  </div>
+
+  <div class="card compact">
+    <h2>Configured Devices</h2>
+    <div id="status">Loading…</div>
+    <ul id="devices"></ul>
+    <!-- BLE encryption key fields will be rendered dynamically per device in the UI (see app.ts/devices.js) -->
+    <div id="removeAllContainer" style="
+          display: none;
+          margin-top: 12px;
+          padding-top: 10px;
+          border-top: 1px solid rgba(0, 0, 0, 0.1);
+        ">
+      <button id="removeAllBtn" style="
+            background: #dc2626;
+            width: 100%;
+            padding: 7px 12px;
+            font-size: 12px;
+            font-weight: 500;
+          ">
+        🗑️ Remove All Devices
+      </button>
+    </div>
+  </div>
+
+
+  <div class="card compact" id="advancedSettingsCard" style="margin-top: 24px;">
+    <h2>Advanced Settings</h2>
+    <form id="advancedSettingsForm">
+            <div class="form-group">
+              <label for="enableMatter">
+                <input type="checkbox" id="enableMatter" /> Enable Matter Support (Override)
+              </label>
+              <small>Manually enable Matter support. By default, Matter is auto-detected from the child bridge configuration. Only change this if you need to override the auto-detection.</small>
+            </div>
+            <div class="form-group">
+              <label for="preferMatter">
+                <input type="checkbox" id="preferMatter" /> Prefer Matter when available
+              </label>
+              <small>If enabled and Matter is available, devices will be presented as Matter accessories where supported (instead of HAP).</small>
+            </div>
+            <div class="form-group">
+              <label for="enableBLE">
+                <input type="checkbox" id="enableBLE" /> Enable BLE (Bluetooth)
+              </label>
+              <small>Enable or disable BLE (Bluetooth Low Energy) support. If disabled, only OpenAPI (cloud) will be used.</small>
+            </div>
+            <div class="form-group">
+              <label for="blePollingEnabled">
+                <input type="checkbox" id="blePollingEnabled" /> Enable BLE Polling Fallback
+              </label>
+              <small>If enabled, the plugin will periodically poll BLE devices for status as a safety net in addition to real-time notifications. This helps recover from missed notifications or connection loss. Recommended for reliability. Can be overridden per device.</small>
+            </div>
+            <div class="form-group">
+              <label for="blePollIntervalMs">BLE Polling Interval (ms)</label>
+              <input type="number" id="blePollIntervalMs" min="60000" max="3600000" step="1000" value="600000" />
+              <small>How often to poll BLE devices for status (in milliseconds). Default is 600000 (10 minutes). Set higher to reduce battery drain. Minimum 60000 (1 minute). Can be overridden per device.</small>
+            </div>
+      <div class="form-group">
+        <label for="openApiRefreshRate">OpenAPI Polling Interval (seconds)</label>
+        <input type="number" id="openApiRefreshRate" min="30" max="86400" step="1" value="300" />
+        <small>How often to poll devices via OpenAPI for status. Default: 300 (5 min). Min: 30. Can be overridden per device.</small>
+      </div>
+      <div class="form-group">
+        <label for="matterBatchEnabled">
+          <input type="checkbox" id="matterBatchEnabled" /> Enable Batched OpenAPI Polling
+        </label>
+        <small>Poll all OpenAPI devices in a single batch at the configured interval. Devices with per-device refreshRate are excluded from the batch.</small>
+      </div>
+      <div class="form-group">
+        <label for="matterBatchRefreshRate">OpenAPI Batch Polling Interval (seconds)</label>
+        <input type="number" id="matterBatchRefreshRate" min="30" max="86400" step="1" value="300" />
+        <small>Interval for batched OpenAPI polling. Falls back to OpenAPI Polling Interval if not set. Default: 300.</small>
+      </div>
+      <div class="form-group">
+        <label for="dailyApiLimit">OpenAPI Daily Request Limit</label>
+        <input type="number" id="dailyApiLimit" min="1000" max="100000" step="1" value="10000" />
+        <small>Maximum OpenAPI requests per day allowed by the plugin. Default: 10000.</small>
+      </div>
+      <div class="form-group">
+        <label for="dailyApiReserveForCommands">OpenAPI Reserve for Commands</label>
+        <input type="number" id="dailyApiReserveForCommands" min="0" max="10000" step="1" value="1000" />
+        <small>Requests reserved for user actions. When remaining budget reaches this value, background polling pauses. Default: 1000.</small>
+      </div>
+      <div class="form-group">
+        <label for="dailyApiResetLocalMidnight">
+          <input type="checkbox" id="dailyApiResetLocalMidnight" /> Reset OpenAPI Counter at Local Midnight
+        </label>
+        <small>If true, resets the daily OpenAPI request counter at local midnight. If false, resets at UTC midnight.</small>
+      </div>
+      <div class="form-group">
+        <label for="webhookOnlyOnReserve">
+          <input type="checkbox" id="webhookOnlyOnReserve" /> Only Allow Webhooks on Reserve
+        </label>
+        <small>When remaining OpenAPI budget reaches the reserve, only webhooks and user commands are allowed. Background polling/discovery pauses.</small>
+      </div>
+      <div class="form-group">
+        <label for="matterBatchConcurrency">OpenAPI Batch Concurrency</label>
+        <input type="number" id="matterBatchConcurrency" min="1" max="20" step="1" value="5" />
+        <small>Maximum number of parallel OpenAPI status calls during a batch. Default: 5.</small>
+      </div>
+      <div class="form-group">
+        <label for="matterBatchJitter">OpenAPI Batch Jitter (seconds)</label>
+        <input type="number" id="matterBatchJitter" min="0" max="300" step="1" value="0" />
+        <small>Random startup delay before the first batch to reduce synchronized spikes. Default: 0.</small>
+      </div>
+      <button type="button" id="saveAdvancedSettingsBtn">Save Advanced Settings</button>
+      <div id="advancedSettingsStatus" style="margin-top: 8px; font-size: 12px;"></div>
+    </form>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/advanced-settings.js"></script>
+</body>
+
+</html>
