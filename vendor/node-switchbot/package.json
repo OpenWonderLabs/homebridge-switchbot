@@ -1,0 +1,90 @@
+{
+  "name": "node-switchbot",
+  "type": "module",
+  "version": "4.0.1",
+  "description": "The node-switchbot is a Node.js module which allows you to control your Switchbot Devices through Bluetooth (BLE) with automatic OpenAPI fallback.",
+  "author": "OpenWonderLabs (https://github.com/OpenWonderLabs)",
+  "license": "MIT",
+  "homepage": "https://github.com/OpenWonderLabs/node-switchbot",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OpenWonderLabs/node-switchbot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/OpenWonderLabs/node-switchbot/issues"
+  },
+  "keywords": [
+    "switchbot",
+    "bot",
+    "meter",
+    "temperature",
+    "humidity",
+    "curtain",
+    "blind",
+    "BLE",
+    "Bluetooth Low Energy",
+    "Bluetooth smart",
+    "Bluetooth",
+    "OpenAPI",
+    "OpenWonderLabs",
+    "Switchbot API"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "BLE.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "OpenAPI.md",
+    "README.md",
+    "dist/"
+  ],
+  "engines": {
+    "node": "^22 || ^24"
+  },
+  "scripts": {
+    "check": "npm install && npm outdated",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts test/**/*.ts && npm run type-check",
+    "lint:fix": "eslint src/**/*.ts test/**/*.ts --fix && npm run type-check",
+    "lint:src": "eslint src/**/*.ts",
+    "lint:test": "eslint test/**/*.ts",
+    "watch": "npm run build && npm link && nodemon",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run lint && npm run build && npm run docs && npm run lint-docs",
+    "postpublish": "npm run clean && npm ci",
+    "clean": "shx rm -rf ./dist",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test-coverage": "npm run test -- --coverage",
+    "ble:scan": "node tmp-switchbot-scan.mjs",
+    "docs": "typedoc",
+    "lint-docs": "typedoc --emit none --treatWarningsAsErrors"
+  },
+  "readmeFilename": "README.md",
+  "dependencies": {
+    "@stoprocent/noble": "^2.4.0",
+    "undici": "^8.0.2"
+  },
+  "optionalDependencies": {
+    "@stoprocent/bluetooth-hci-socket": "^2.2.5"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^8.1.1",
+    "@types/node": "^25.6.0",
+    "@vitest/coverage-v8": "^4.1.4",
+    "eslint": "^10.2.0",
+    "eslint-plugin-format": "^2.0.1",
+    "eslint-plugin-perfectionist": "^5.8.0",
+    "shx": "^0.4.0",
+    "typedoc": "^0.28.18",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.4"
+  },
+  "overrides": {
+    "brace-expansion": "^5.0.5",
+    "flatted": "^3.4.0",
+    "picomatch": "^2.3.2",
+    "yaml": "^2.8.3"
+  }
+}

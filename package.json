@@ -93,11 +93,8 @@
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^2.2.3",
     "class-validator": "^0.15.1",
-    "node-switchbot": "github:rmehta33/node-switchbot#homebridge-macos-ble"
+    "node-switchbot": "file:vendor/node-switchbot"
   },
-  "bundledDependencies": [
-    "node-switchbot"
-  ],
   "devDependencies": {
     "@antfu/eslint-config": "^8.2.0",
     "@types/debug": "^4.1.13",
