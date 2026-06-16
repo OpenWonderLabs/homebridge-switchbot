@@ -43,7 +43,7 @@ export class SwitchBotClient {
                 enableRetry: true, // Retry with exponential backoff
                 enableCircuitBreaker: true, // Circuit breaker per connection type
                 enableConnectionIntelligence: true, // Connection tracking and route preference
-                enableBLE: this.cfg.enableBLE !== false, // Use config value, default true
+                enableBLE: this.cfg.enableBLE === true,
                 scanTimeout,
                 ...rawNodeClientConfig,
             });

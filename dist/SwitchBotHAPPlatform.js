@@ -242,7 +242,8 @@ export class SwitchBotHAPPlatform {
                 if (accDesc && accDesc.services) {
                     const serviceTypes = accDesc.services.map((s) => s.type);
                     for (const existingService of accessory.services.slice()) {
-                        if (existingService.constructor && existingService.constructor.name && !serviceTypes.includes(existingService.constructor.name)) {
+                        const serviceName = existingService.constructor?.name;
+                        if (serviceName && serviceName !== 'AccessoryInformation' && !serviceTypes.includes(serviceName)) {
                             accessory.removeService(existingService);
                         }
                     }
