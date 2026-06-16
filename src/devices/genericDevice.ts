@@ -480,7 +480,25 @@ export class GenericDevice extends DeviceBase {
 }
 
 // Specific device classes can extend GenericDevice for custom behavior.
-export class BotDevice extends GenericDevice {}
+export class BotDevice extends GenericDevice {
+  createHAPAccessory(api: any): any {
+    return {
+      services: [
+        {
+          type: 'Switch',
+          characteristics: {
+            On: {
+              get: async () => false,
+              set: async () => {
+                await this.setState({ command: 'press', parameter: 'default', commandType: 'command' })
+              },
+            },
+          },
+        },
+      ],
+    }
+  }
+}
 
 export class CurtainDevice extends GenericDevice {
   createHAPAccessory(api: any) {
