@@ -1306,6 +1306,100 @@ export class MeterDevice extends GenericDevice {
 }
 
 export class WaterDetectorDevice extends GenericDevice {
+  private _leakRefreshing = false
+  private _leakRefreshTs = 0
+  private lastLeakDetected?: boolean
+  private readonly LEAK_REFRESH_TTL_MS = 30_000
+
+  async init(): Promise<void> {
+    await super.init()
+    await this._refreshLeakState(!this.client)
+  }
+
+  private normalizeLeakDetected(state: any): boolean | undefined {
+    if (typeof state?.leak === 'boolean') {
+      return state.leak
+    }
+    if (typeof state?.waterLeakDetected === 'boolean') {
+      return state.waterLeakDetected
+    }
+    if (typeof state?.body?.waterLeakDetected === 'boolean') {
+      return state.body.waterLeakDetected
+    }
+    const status = state?.status ?? state?.body?.status
+    if (typeof status === 'number') {
+      return status === 1
+    }
+    if (typeof status === 'string') {
+      return ['1', 'leak', 'leaked', 'detected', 'water_leak_detected'].includes(status.toLowerCase())
+    }
+    return undefined
+  }
+
+  private async readLeakDetectedFromOpenAPI(): Promise<boolean | undefined> {
+    const token = this.cfg?.openApiToken
+    const secret = this.cfg?.openApiSecret
+    if (!token || !secret) {
+      return undefined
+    }
+
+    try {
+      const { OpenAPIClient } = await import('node-switchbot')
+      const apiClient = new OpenAPIClient(token, secret)
+      return this.normalizeLeakDetected(await apiClient.getStatus(this.opts.id))
+    } catch (e) {
+      this.log?.debug?.(`[WaterDetector] direct OpenAPI leak refresh failed: ${(e as Error)?.message}`)
+    }
+
+    return undefined
+  }
+
+  private async readLeakDetected(fallbackToDeviceState = true): Promise<boolean | undefined> {
+    const openApiLeak = await this.readLeakDetectedFromOpenAPI()
+    if (typeof openApiLeak === 'boolean') {
+      return openApiLeak
+    }
+    if (!fallbackToDeviceState) {
+      return undefined
+    }
+
+    try {
+      return this.normalizeLeakDetected(await this.getState())
+    } catch (e) {
+      this.log?.debug?.(`[WaterDetector] leak refresh failed: ${(e as Error)?.message}`)
+    }
+
+    return undefined
+  }
+
+  private async _refreshLeakState(fallbackToDeviceState = true): Promise<void> {
+    if (this._leakRefreshing) {
+      return
+    }
+    this._leakRefreshing = true
+    try {
+      const leakDetected = await this.readLeakDetected(fallbackToDeviceState)
+      if (typeof leakDetected === 'boolean') {
+        this.lastLeakDetected = leakDetected
+        this._leakRefreshTs = Date.now()
+      }
+    } catch (e) {
+      this.log?.debug?.(`[WaterDetector] leak refresh failed: ${(e as Error)?.message}`)
+    } finally {
+      this._leakRefreshing = false
+    }
+  }
+
+  private getLeakDetectedFast(api: any): number {
+    if (Date.now() - this._leakRefreshTs >= this.LEAK_REFRESH_TTL_MS) {
+      this._refreshLeakState().catch(() => undefined)
+    }
+    if (typeof this.lastLeakDetected === 'boolean') {
+      return this.lastLeakDetected ? 1 : 0
+    }
+    throw new api.hap.HapStatusError(api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE)
+  }
+
   createHAPAccessory(api: any) {
     return {
       services: [
@@ -1313,10 +1407,7 @@ export class WaterDetectorDevice extends GenericDevice {
           type: 'LeakSensor',
           characteristics: {
             LeakDetected: {
-              get: async () => {
-                const s = await this.getState()
-                return s && s.leak ? 1 : 0
-              },
+              get: () => this.getLeakDetectedFast(api),
             },
           },
         },
