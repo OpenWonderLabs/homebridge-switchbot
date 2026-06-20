@@ -15,7 +15,7 @@ export class WoCurtain extends SwitchBotDevice {
      */
     async open(speed = 255) {
         const clampedSpeed = clamp(speed, 1, 255);
-        const result = await this.sendCommand([...DEVICE_COMMANDS.CURTAIN.POSITION, clampedSpeed, 0], 'setPosition', `0,${clampedSpeed.toString(16).padStart(2, '0')},0`);
+        const result = await this.sendCommand([...DEVICE_COMMANDS.CURTAIN.POSITION, clampedSpeed, 0], 'setPosition', `0,${clampedSpeed.toString(16).padStart(2, '0')},0`, true);
         return result.success;
     }
     /**
@@ -23,14 +23,14 @@ export class WoCurtain extends SwitchBotDevice {
      */
     async close(speed = 255) {
         const clampedSpeed = clamp(speed, 1, 255);
-        const result = await this.sendCommand([...DEVICE_COMMANDS.CURTAIN.POSITION, clampedSpeed, 100], 'setPosition', `0,${clampedSpeed.toString(16).padStart(2, '0')},100`);
+        const result = await this.sendCommand([...DEVICE_COMMANDS.CURTAIN.POSITION, clampedSpeed, 100], 'setPosition', `0,${clampedSpeed.toString(16).padStart(2, '0')},100`, true);
         return result.success;
     }
     /**
      * Pause curtain movement
      */
     async pause() {
-        const result = await this.sendCommand(DEVICE_COMMANDS.CURTAIN.PAUSE, 'pause');
+        const result = await this.sendCommand(DEVICE_COMMANDS.CURTAIN.PAUSE, 'pause', undefined, true);
         return result.success;
     }
     /**
@@ -41,7 +41,7 @@ export class WoCurtain extends SwitchBotDevice {
         const clampedSpeed = clamp(speed, 1, 255);
         // BLE command with speed and position bytes
         const bleCommand = [...DEVICE_COMMANDS.CURTAIN.POSITION, clampedSpeed, clampedPosition];
-        const result = await this.sendCommand(bleCommand, 'setPosition', `0,${clampedSpeed.toString(16).padStart(2, '0')},${clampedPosition}`);
+        const result = await this.sendCommand(bleCommand, 'setPosition', `0,${clampedSpeed.toString(16).padStart(2, '0')},${clampedPosition}`, true);
         return result.success;
     }
     /**

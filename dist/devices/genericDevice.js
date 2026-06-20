@@ -460,6 +460,33 @@ export class BotDevice extends GenericDevice {
     }
 }
 export class CurtainDevice extends GenericDevice {
+    lastKnownPosition = 0;
+    lastTargetPosition = 0;
+    positionState = 2;
+    preferLocalPositionUntil = 0;
+    clampHomeKitPosition(position) {
+        return Math.max(0, Math.min(100, Math.round(Number(position))));
+    }
+    toHomeKitPosition(switchBotPosition) {
+        return 100 - this.clampHomeKitPosition(switchBotPosition);
+    }
+    toSwitchBotPosition(homeKitPosition) {
+        return 100 - this.clampHomeKitPosition(homeKitPosition);
+    }
+    async getPositionForHomeKit() {
+        if (Date.now() < this.preferLocalPositionUntil) {
+            return this.lastKnownPosition;
+        }
+        const state = await Promise.race([
+            this.getState(),
+            new Promise(resolve => setTimeout(() => resolve(undefined), 1000)),
+        ]);
+        if (typeof state?.position === 'number') {
+            this.lastKnownPosition = this.toHomeKitPosition(Number(state.position));
+            this.lastTargetPosition = this.lastKnownPosition;
+        }
+        return this.lastKnownPosition;
+    }
     createHAPAccessory(api) {
         return {
             services: [
@@ -468,17 +495,25 @@ export class CurtainDevice extends GenericDevice {
                     characteristics: {
                         CurrentPosition: {
                             get: async () => {
-                                const s = await this.getState();
-                                return typeof s.position === 'number' ? s.position : 0;
+                                return this.getPositionForHomeKit();
                             },
+                        },
+                        PositionState: {
+                            get: async () => this.positionState,
                         },
                         TargetPosition: {
                             get: async () => {
-                                const s = await this.getState();
-                                return typeof s.position === 'number' ? s.position : 0;
+                                await this.getPositionForHomeKit();
+                                return this.lastTargetPosition;
                             },
                             set: async (v) => {
-                                await this.setState({ position: Number(v) });
+                                const position = this.clampHomeKitPosition(Number(v));
+                                this.lastTargetPosition = position;
+                                this.positionState = position > this.lastKnownPosition ? 1 : position < this.lastKnownPosition ? 0 : 2;
+                                await this.setState({ position: this.toSwitchBotPosition(position) });
+                                this.lastKnownPosition = position;
+                                this.preferLocalPositionUntil = Date.now() + 30000;
+                                this.positionState = 2;
                             },
                         },
                     },
@@ -1346,6 +1381,93 @@ export class MeterDevice extends GenericDevice {
     }
 }
 export class WaterDetectorDevice extends GenericDevice {
+    _leakRefreshing = false;
+    _leakRefreshTs = 0;
+    lastLeakDetected;
+    LEAK_REFRESH_TTL_MS = 30_000;
+    async init() {
+        await super.init();
+        await this._refreshLeakState(!this.client);
+    }
+    normalizeLeakDetected(state) {
+        if (typeof state?.leak === 'boolean') {
+            return state.leak;
+        }
+        if (typeof state?.waterLeakDetected === 'boolean') {
+            return state.waterLeakDetected;
+        }
+        if (typeof state?.body?.waterLeakDetected === 'boolean') {
+            return state.body.waterLeakDetected;
+        }
+        const status = state?.status ?? state?.body?.status;
+        if (typeof status === 'number') {
+            return status === 1;
+        }
+        if (typeof status === 'string') {
+            return ['1', 'leak', 'leaked', 'detected', 'water_leak_detected'].includes(status.toLowerCase());
+        }
+        return undefined;
+    }
+    async readLeakDetectedFromOpenAPI() {
+        const token = this.cfg?.openApiToken;
+        const secret = this.cfg?.openApiSecret;
+        if (!token || !secret) {
+            return undefined;
+        }
+        try {
+            const { OpenAPIClient } = await import('node-switchbot');
+            const apiClient = new OpenAPIClient(token, secret);
+            return this.normalizeLeakDetected(await apiClient.getStatus(this.opts.id));
+        }
+        catch (e) {
+            this.log?.debug?.(`[WaterDetector] direct OpenAPI leak refresh failed: ${e?.message}`);
+        }
+        return undefined;
+    }
+    async readLeakDetected(fallbackToDeviceState = true) {
+        const openApiLeak = await this.readLeakDetectedFromOpenAPI();
+        if (typeof openApiLeak === 'boolean') {
+            return openApiLeak;
+        }
+        if (!fallbackToDeviceState) {
+            return undefined;
+        }
+        try {
+            return this.normalizeLeakDetected(await this.getState());
+        }
+        catch (e) {
+            this.log?.debug?.(`[WaterDetector] leak refresh failed: ${e?.message}`);
+        }
+        return undefined;
+    }
+    async _refreshLeakState(fallbackToDeviceState = true) {
+        if (this._leakRefreshing) {
+            return;
+        }
+        this._leakRefreshing = true;
+        try {
+            const leakDetected = await this.readLeakDetected(fallbackToDeviceState);
+            if (typeof leakDetected === 'boolean') {
+                this.lastLeakDetected = leakDetected;
+                this._leakRefreshTs = Date.now();
+            }
+        }
+        catch (e) {
+            this.log?.debug?.(`[WaterDetector] leak refresh failed: ${e?.message}`);
+        }
+        finally {
+            this._leakRefreshing = false;
+        }
+    }
+    getLeakDetectedFast(api) {
+        if (Date.now() - this._leakRefreshTs >= this.LEAK_REFRESH_TTL_MS) {
+            this._refreshLeakState().catch(() => undefined);
+        }
+        if (typeof this.lastLeakDetected === 'boolean') {
+            return this.lastLeakDetected ? 1 : 0;
+        }
+        throw new api.hap.HapStatusError(api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+    }
     createHAPAccessory(api) {
         return {
             services: [
@@ -1353,10 +1475,7 @@ export class WaterDetectorDevice extends GenericDevice {
                     type: 'LeakSensor',
                     characteristics: {
                         LeakDetected: {
-                            get: async () => {
-                                const s = await this.getState();
-                                return s && s.leak ? 1 : 0;
-                            },
+                            get: () => this.getLeakDetectedFast(api),
                         },
                     },
                 },

@@ -66,15 +66,26 @@ export declare class BotDevice extends GenericDevice {
     createHAPAccessory(api: any): any;
 }
 export declare class CurtainDevice extends GenericDevice {
+    private lastKnownPosition;
+    private lastTargetPosition;
+    private positionState;
+    private preferLocalPositionUntil;
+    private clampHomeKitPosition;
+    private toHomeKitPosition;
+    private toSwitchBotPosition;
+    private getPositionForHomeKit;
     createHAPAccessory(api: any): {
         services: {
             type: string;
             characteristics: {
                 CurrentPosition: {
-                    get: () => Promise<any>;
+                    get: () => Promise<number>;
+                };
+                PositionState: {
+                    get: () => Promise<number>;
                 };
                 TargetPosition: {
-                    get: () => Promise<any>;
+                    get: () => Promise<number>;
                     set: (v: any) => Promise<void>;
                 };
             };
@@ -295,12 +306,22 @@ export declare class MeterDevice extends GenericDevice {
     };
 }
 export declare class WaterDetectorDevice extends GenericDevice {
+    private _leakRefreshing;
+    private _leakRefreshTs;
+    private lastLeakDetected?;
+    private readonly LEAK_REFRESH_TTL_MS;
+    init(): Promise<void>;
+    private normalizeLeakDetected;
+    private readLeakDetectedFromOpenAPI;
+    private readLeakDetected;
+    private _refreshLeakState;
+    private getLeakDetectedFast;
     createHAPAccessory(api: any): {
         services: {
             type: string;
             characteristics: {
                 LeakDetected: {
-                    get: () => Promise<0 | 1>;
+                    get: () => number;
                 };
             };
         }[];

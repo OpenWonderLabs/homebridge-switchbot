@@ -68,6 +68,7 @@ const DEVICE_CLASS_MAP = {
     'meter': MeterDevice,
     'meter plus (jp)': MeterDevice,
     'water detector': WaterDetectorDevice,
+    'waterdetector': WaterDetectorDevice,
     'smart fan': SmartFanDevice,
     'strip light': StripLightDevice,
     'wosweeper': WoSweeperDevice,
