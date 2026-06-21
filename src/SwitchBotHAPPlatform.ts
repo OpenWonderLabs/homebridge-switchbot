@@ -304,7 +304,26 @@ export class SwitchBotHAPPlatform {
                 service.getCharacteristic(Characteristic).onGet(getterSetter.get)
               }
               if (getterSetter && typeof getterSetter.set === 'function') {
-                service.getCharacteristic(Characteristic).onSet(getterSetter.set)
+                service.getCharacteristic(Characteristic).onSet(async (value: any) => {
+                  await getterSetter.set(value)
+
+                  const refreshAfterSet = Array.isArray(getterSetter.refreshAfterSet) ? getterSetter.refreshAfterSet : []
+                  for (const refreshCharName of refreshAfterSet) {
+                    const refreshGetterSetter: any = (s.characteristics || {})[refreshCharName]
+                    if (!refreshGetterSetter || typeof refreshGetterSetter.get !== 'function') {
+                      continue
+                    }
+                    const RefreshCharacteristic = (hap.Characteristic as any)[refreshCharName]
+                    if (!RefreshCharacteristic) {
+                      continue
+                    }
+                    try {
+                      service.getCharacteristic(RefreshCharacteristic).updateValue(await refreshGetterSetter.get())
+                    } catch (e) {
+                      this.log.debug?.(`Failed to refresh ${refreshCharName} after setting ${charName}`, e)
+                    }
+                  }
+                })
               }
             }
           }
