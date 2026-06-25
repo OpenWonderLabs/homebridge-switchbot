@@ -30,4 +30,13 @@ describe('createDevice', () => {
     const result = await createDevice({ id: 'xyz', type: 'UnknownType' }, dummyConfig as any, false)
     expect(result.instance.constructor.name).toBe('GenericDevice')
   })
+
+  it('should create a WaterDetectorDevice for normalized "waterdetector" type', async () => {
+    // normalizeTypeForMatter() returns 'waterdetector' (no space) for water detector variants.
+    // This regression test ensures the no-space key is mapped so devices aren't silently
+    // downgraded to GenericDevice (which would expose a bogus Switch service).
+    const result = await createDevice({ id: 'wd1', type: 'waterdetector' }, dummyConfig as any, false)
+    expect(result.instance).toBeDefined()
+    expect(result.instance.constructor.name).toBe('WaterDetectorDevice')
+  })
 })

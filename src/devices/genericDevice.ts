@@ -1306,18 +1306,40 @@ export class MeterDevice extends GenericDevice {
 }
 
 export class WaterDetectorDevice extends GenericDevice {
+  private _leakRefreshing = false
+  private _leakRefreshTs = 0
+  private lastLeakDetected?: boolean
+  private readonly LEAK_REFRESH_TTL_MS = 30_000
+
   private lastBatteryLevel?: number
   private _batteryRefreshing = false
   private _batteryRefreshTs = 0
   private readonly BATTERY_REFRESH_TTL_MS = 30_000
 
-  constructor(opts: any, cfg: any) {
-    super(opts, cfg)
-  }
-
   async init(): Promise<void> {
     await super.init()
+    await this._refreshLeakState(!this.client)
     await this._refreshBattery()
+  }
+
+  private normalizeLeakDetected(state: any): boolean | undefined {
+    if (typeof state?.leak === 'boolean') {
+      return state.leak
+    }
+    if (typeof state?.waterLeakDetected === 'boolean') {
+      return state.waterLeakDetected
+    }
+    if (typeof state?.body?.waterLeakDetected === 'boolean') {
+      return state.body.waterLeakDetected
+    }
+    const status = state?.status ?? state?.body?.status
+    if (typeof status === 'number') {
+      return status === 1
+    }
+    if (typeof status === 'string') {
+      return ['1', 'leak', 'leaked', 'detected', 'water_leak_detected'].includes(status.toLowerCase())
+    }
+    return undefined
   }
 
   private normalizeBatteryLevel(state: any): number | undefined {
@@ -1328,15 +1350,7 @@ export class WaterDetectorDevice extends GenericDevice {
     return Math.max(0, Math.min(100, raw))
   }
 
-  private async getSwitchBotDevice(): Promise<any> {
-    const managedDevice = (this.client as any)?.client?.devices?.get?.(this.opts.id)
-    if (managedDevice) {
-      return managedDevice
-    }
-    return await (this.client as any)?.getDevice?.(this.opts.id)
-  }
-
-  private async readBatteryLevelFromOpenAPI(): Promise<number | undefined> {
+  private async getOpenAPIStatus(): Promise<any> {
     const token = this.cfg?.openApiToken
     const secret = this.cfg?.openApiSecret
     if (!token || !secret) {
@@ -1346,63 +1360,63 @@ export class WaterDetectorDevice extends GenericDevice {
     try {
       const { OpenAPIClient } = await import('node-switchbot')
       const apiClient = new OpenAPIClient(token, secret)
-      const status = await apiClient.getStatus(this.opts.id)
-      return this.normalizeBatteryLevel(status)
+      return await apiClient.getStatus(this.opts.id)
     } catch (e) {
-      this.log?.debug?.(`[WaterDetector] direct OpenAPI battery refresh failed: ${(e as Error)?.message}`)
+      this.log?.debug?.(`[WaterDetector] direct OpenAPI refresh failed: ${(e as Error)?.message}`)
+    }
+
+    return undefined
+  }
+
+  private async readLeakDetected(fallbackToDeviceState = true): Promise<boolean | undefined> {
+    const status = await this.getOpenAPIStatus()
+    if (status) {
+      const leak = this.normalizeLeakDetected(status)
+      if (typeof leak === 'boolean') {
+        return leak
+      }
+    }
+    if (!fallbackToDeviceState) {
+      return undefined
+    }
+
+    try {
+      return this.normalizeLeakDetected(await this.getState())
+    } catch (e) {
+      this.log?.debug?.(`[WaterDetector] leak refresh failed: ${(e as Error)?.message}`)
     }
 
     return undefined
   }
 
   private async readBatteryLevel(): Promise<number | undefined> {
-    const openApiBattery = await this.readBatteryLevelFromOpenAPI()
-    if (typeof openApiBattery === 'number') {
-      return openApiBattery
-    }
-
-    const device = await this.getSwitchBotDevice()
-    if (!device) {
-      return undefined
-    }
-
-    if (typeof device.apiClient?.getStatus === 'function') {
-      try {
-        const rawApiStatus = await device.apiClient.getStatus(device.info?.id ?? this.opts.id)
-        const battery = this.normalizeBatteryLevel(rawApiStatus)
-        if (typeof battery === 'number') {
-          return battery
-        }
-      } catch (e) {
-        this.log?.debug?.(`[WaterDetector] apiClient battery refresh failed: ${(e as Error)?.message}`)
+    const status = await this.getOpenAPIStatus()
+    if (status) {
+      const battery = this.normalizeBatteryLevel(status)
+      if (typeof battery === 'number') {
+        return battery
       }
-    }
-
-    if (typeof device.getAPIStatus === 'function') {
-      try {
-        const apiStatus = await device.getAPIStatus()
-        const battery = this.normalizeBatteryLevel(apiStatus)
-        if (typeof battery === 'number') {
-          return battery
-        }
-      } catch (e) {
-        this.log?.debug?.(`[WaterDetector] getAPIStatus battery refresh failed: ${(e as Error)?.message}`)
-      }
-    }
-
-    try {
-      if (typeof device.getStatus === 'function') {
-        const status = await device.getStatus()
-        const battery = this.normalizeBatteryLevel(status)
-        if (typeof battery === 'number') {
-          return battery
-        }
-      }
-    } catch (e) {
-      this.log?.debug?.(`[WaterDetector] getStatus battery refresh failed: ${(e as Error)?.message}`)
     }
 
     return undefined
+  }
+
+  private async _refreshLeakState(fallbackToDeviceState = true): Promise<void> {
+    if (this._leakRefreshing) {
+      return
+    }
+    this._leakRefreshing = true
+    try {
+      const leakDetected = await this.readLeakDetected(fallbackToDeviceState)
+      if (typeof leakDetected === 'boolean') {
+        this.lastLeakDetected = leakDetected
+        this._leakRefreshTs = Date.now()
+      }
+    } catch (e) {
+      this.log?.debug?.(`[WaterDetector] leak refresh failed: ${(e as Error)?.message}`)
+    } finally {
+      this._leakRefreshing = false
+    }
   }
 
   private async _refreshBattery(): Promise<void> {
@@ -1421,6 +1435,16 @@ export class WaterDetectorDevice extends GenericDevice {
     } finally {
       this._batteryRefreshing = false
     }
+  }
+
+  private getLeakDetectedFast(api: any): number {
+    if (Date.now() - this._leakRefreshTs >= this.LEAK_REFRESH_TTL_MS) {
+      this._refreshLeakState().catch(() => undefined)
+    }
+    if (typeof this.lastLeakDetected === 'boolean') {
+      return this.lastLeakDetected ? 1 : 0
+    }
+    throw new api.hap.HapStatusError(api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE)
   }
 
   // Returns the cached battery level immediately and triggers a background
@@ -1444,10 +1468,7 @@ export class WaterDetectorDevice extends GenericDevice {
           type: 'LeakSensor',
           characteristics: {
             LeakDetected: {
-              get: async () => {
-                const s = await this.getState()
-                return s && s.leak ? 1 : 0
-              },
+              get: () => this.getLeakDetectedFast(api),
             },
           },
         },

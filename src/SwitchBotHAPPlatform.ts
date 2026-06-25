@@ -240,12 +240,38 @@ export class SwitchBotHAPPlatform {
             // ignore
           }
         }
+        // Ensure AccessoryInformation service exists - required for cache deserialization.
+        // Without it, hap-nodejs _sideloadServices crashes on next start.
+        try {
+          const InfoService = hap.Service.AccessoryInformation
+          if (InfoService) {
+            const info = accessory.getService(InfoService) || accessory.addService(InfoService)
+            const accDescForInfo = await created.createAccessory?.(this.api).catch?.(() => undefined)
+            const manufacturer = (accDescForInfo && accDescForInfo.manufacturer) || 'SwitchBot'
+            const model = (accDescForInfo && accDescForInfo.model) || type || 'SwitchBot Device'
+            const serial = (accDescForInfo && accDescForInfo.serialNumber) || d.id
+            const firmware = (accDescForInfo && accDescForInfo.firmwareRevision) || '1.0.0'
+            try {
+              info.setCharacteristic(hap.Characteristic.Manufacturer, manufacturer)
+              info.setCharacteristic(hap.Characteristic.Model, model)
+              info.setCharacteristic(hap.Characteristic.SerialNumber, serial)
+              info.setCharacteristic(hap.Characteristic.FirmwareRevision, firmware)
+            } catch (e) {
+              // ignore
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
         // Add basic service descriptor from device (symmetrical to Matter: remove stale services/chars)
         const accDesc = await created.createAccessory?.(this.api)
         if (accDesc && accDesc.services) {
           const serviceTypes = accDesc.services.map((s: any) => s.type)
           for (const existingService of accessory.services.slice()) {
-            if (existingService.constructor && existingService.constructor.name && !serviceTypes.includes(existingService.constructor.name)) {
+            // Never remove AccessoryInformation - required for cache deserialization
+            if (existingService.constructor && existingService.constructor.name
+              && existingService.constructor.name !== 'AccessoryInformation'
+              && !serviceTypes.includes(existingService.constructor.name)) {
               accessory.removeService(existingService)
             }
           }
