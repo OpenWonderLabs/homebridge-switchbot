@@ -2,6 +2,7 @@ import type { SwitchBotPluginConfig } from './settings.js'
 import type { API, Logger, PlatformConfig } from 'homebridge'
 
 import { createDevice } from './deviceFactory.js'
+import { BotDevice } from './devices/genericDevice.js'
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js'
 import { SwitchBotClient } from './switchbotClient.js'
 import { normalizeTypeForMatter } from './utils.js'
@@ -152,7 +153,7 @@ export class SwitchBotHAPPlatform {
         _raw: raw,
       }
       const type: string = normalizeTypeForMatter(d.type)
-      const deviceOpts: any = { id: d.id, type, name: d.name, encryptionKey: d.encryptionKey, keyId: d.keyId, log: this.log }
+      const deviceOpts: any = { id: d.id, type, name: d.name, encryptionKey: d.encryptionKey, keyId: d.keyId, log: this.log, botMode: raw.botMode }
       this.log.debug(`[HAP/Debug] Device options for ${d.name ?? d.id}:`, JSON.stringify(deviceOpts, null, 2))
       try {
         const created = await createDevice(deviceOpts, this.config, false)
@@ -305,6 +306,9 @@ export class SwitchBotHAPPlatform {
               }
               if (getterSetter && typeof getterSetter.set === 'function') {
                 service.getCharacteristic(Characteristic).onSet(getterSetter.set)
+                if (created instanceof BotDevice && charName === 'On') {
+                  created._hapOnChar = service.getCharacteristic(Characteristic)
+                }
               }
             }
           }

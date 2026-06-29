@@ -480,7 +480,40 @@ export class GenericDevice extends DeviceBase {
 }
 
 // Specific device classes can extend GenericDevice for custom behavior.
-export class BotDevice extends GenericDevice {}
+export class BotDevice extends GenericDevice {
+  /** HAP On characteristic reference, set by SwitchBotHAPPlatform after registration. */
+  _hapOnChar: any = null
+
+  createHAPAccessory(api: any) {
+    if ((this.opts as any).botMode !== 'press') {
+      return super.createHAPAccessory(api)
+    }
+    // Press mode: tap-to-trigger with automatic reset. Sends a single "press"
+    // command and resets the On characteristic to false after 1 second so the
+    // tile in the Home app behaves like a momentary button rather than a toggle.
+    return {
+      services: [
+        {
+          type: 'Switch',
+          characteristics: {
+            On: {
+              get: async () => false,
+              set: async (v: any) => {
+                if (!v) return
+                await this.setState({ command: 'press', parameter: 'default', commandType: 'command' })
+                setTimeout(() => {
+                  if (this._hapOnChar) {
+                    this._hapOnChar.updateValue(false)
+                  }
+                }, 1000)
+              },
+            },
+          },
+        },
+      ],
+    }
+  }
+}
 
 export class CurtainDevice extends GenericDevice {
   createHAPAccessory(api: any) {
