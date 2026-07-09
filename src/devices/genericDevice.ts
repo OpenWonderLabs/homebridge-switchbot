@@ -483,6 +483,38 @@ export class GenericDevice extends DeviceBase {
 export class BotDevice extends GenericDevice {}
 
 export class CurtainDevice extends GenericDevice {
+  private lastKnownPosition = 0
+  private lastTargetPosition = 0
+  private positionState = 2
+  private preferLocalPositionUntil = 0
+
+  private clampHomeKitPosition(position: number): number {
+    return Math.max(0, Math.min(100, Math.round(Number(position))))
+  }
+
+  private toHomeKitPosition(switchBotPosition: number): number {
+    return 100 - this.clampHomeKitPosition(switchBotPosition)
+  }
+
+  private toSwitchBotPosition(homeKitPosition: number): number {
+    return 100 - this.clampHomeKitPosition(homeKitPosition)
+  }
+
+  private async getPositionForHomeKit(): Promise<number> {
+    if (Date.now() < this.preferLocalPositionUntil) {
+      return this.lastKnownPosition
+    }
+    const state = await Promise.race([
+      this.getState(),
+      new Promise(resolve => setTimeout(() => resolve(undefined), 1000)),
+    ])
+    if (typeof state?.position === 'number') {
+      this.lastKnownPosition = this.toHomeKitPosition(Number(state.position))
+      this.lastTargetPosition = this.lastKnownPosition
+    }
+    return this.lastKnownPosition
+  }
+
   createHAPAccessory(api: any) {
     return {
       services: [
@@ -491,18 +523,27 @@ export class CurtainDevice extends GenericDevice {
           characteristics: {
             CurrentPosition: {
               get: async () => {
-                const s = await this.getState()
-                return typeof s.position === 'number' ? s.position : 0
+                return this.getPositionForHomeKit()
               },
+            },
+            PositionState: {
+              get: async () => this.positionState,
             },
             TargetPosition: {
               get: async () => {
-                const s = await this.getState()
-                return typeof s.position === 'number' ? s.position : 0
+                await this.getPositionForHomeKit()
+                return this.lastTargetPosition
               },
               set: async (v: any) => {
-                await this.setState({ position: Number(v) })
+                const position = this.clampHomeKitPosition(Number(v))
+                this.lastTargetPosition = position
+                this.positionState = position > this.lastKnownPosition ? 1 : position < this.lastKnownPosition ? 0 : 2
+                await this.setState({ position: this.toSwitchBotPosition(position) })
+                this.lastKnownPosition = position
+                this.preferLocalPositionUntil = Date.now() + 30000
+                this.positionState = 2
               },
+              refreshAfterSet: ['CurrentPosition', 'TargetPosition', 'PositionState'],
             },
           },
         },
