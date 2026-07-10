@@ -17,7 +17,7 @@ const mockApi = {
   },
 }
 
-describe('WaterDetectorDevice leak state', () => {
+describe('water detector device leak state', () => {
   it('warms leak state and serves LeakDetected synchronously from cache', async () => {
     let reads = 0
     const device = new WaterDetectorDevice({ id: 'wd1', type: 'waterdetector' }, { log: mockLogger })
