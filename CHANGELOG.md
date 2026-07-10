@@ -1,3 +1,13 @@
+## [5.0.4](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v5.0.3...v5.0.4) (2026-07-10)
+
+
+### Bug Fixes
+
+* restore Battery service for water detector ([#1387](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1387)) ([1c5caaa](https://github.com/OpenWonderLabs/homebridge-switchbot/commit/1c5caaa3753532e0fbccc21f2480c7150fa622de)), closes [#1357](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1357)
+* water detector device mapping, HAP cache deserialization crash, and slow leak reads ([#1386](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1386)) ([7550e9b](https://github.com/OpenWonderLabs/homebridge-switchbot/commit/7550e9b861b987336e08ae33772470dbd9b4e210))
+
+
+
 ## [5.0.2](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v4.3.14...v5.0.2) (2026-04-26)
 
 
