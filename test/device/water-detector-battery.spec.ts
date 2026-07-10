@@ -6,7 +6,9 @@ const openApiMocks = vi.hoisted(() => {
   const getStatus = vi.fn()
   return {
     getStatus,
-    OpenAPIClient: vi.fn().mockImplementation(() => ({ getStatus })),
+    // Use a function implementation so the mock is constructible with `new OpenAPIClient()`
+    // eslint-disable-next-line prefer-arrow-callback
+    OpenAPIClient: vi.fn().mockImplementation(function () { return { getStatus } }),
 
   }
 })
