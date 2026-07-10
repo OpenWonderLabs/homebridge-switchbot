@@ -6,9 +6,10 @@ const openApiMocks = vi.hoisted(() => {
   const getStatus = vi.fn()
   return {
     getStatus,
-    OpenAPIClient: vi.fn().mockImplementation(function () {
-      return { getStatus }
-    }),
+    // Use a function implementation so the mock is constructible with `new OpenAPIClient()`
+    // eslint-disable-next-line prefer-arrow-callback
+    OpenAPIClient: vi.fn().mockImplementation(function () { return { getStatus } }),
+
   }
 })
 
@@ -43,7 +44,7 @@ function getBatteryService(device: WaterDetectorDevice) {
   return accessory.services.find((service: any) => service.type === 'Battery')
 }
 
-describe('WaterDetectorDevice battery service', () => {
+describe('water detector device battery service', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     openApiMocks.getStatus.mockResolvedValue({ battery: 87 })

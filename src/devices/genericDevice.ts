@@ -506,7 +506,7 @@ export class CurtainDevice extends GenericDevice {
     }
     const state = await Promise.race([
       this.getState(),
-      new Promise(resolve => setTimeout(() => resolve(undefined), 1000)),
+      new Promise(resolve => setTimeout(resolve, 1000)),
     ])
     if (typeof state?.position === 'number') {
       this.lastKnownPosition = this.toHomeKitPosition(Number(state.position))
