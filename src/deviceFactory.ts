@@ -177,20 +177,10 @@ export async function createDevice(opts: DeviceOptions, cfg: SwitchBotPluginConf
   const device = new DeviceCtor(deviceOpts, mergedCfg)
   await device.init()
 
-  // Attach a simple getState delegator to the client where appropriate
-  const originalGetState = device.getState.bind(device)
-  device.getState = async () => {
-    try {
-      // Prefer client-backed getDevice when available
-      const dev = await client.getDevice(opts.id)
-      if (dev) {
-        return dev
-      }
-    } catch (e) {
-      // ignore and fallback to device implementation
-    }
-    return originalGetState()
-  }
+  // No getState() override here: the device's own implementation already
+  // prefers the client-backed lookup, and it converts the result into a status.
+  // An override that returned the client device directly shadowed it, and that
+  // object carries no readings.
 
   // Provide accessory factory based on platform selection
   return {
