@@ -201,9 +201,21 @@ export class GenericDevice extends DeviceBase {
         // Normalize common response shapes
         try {
           const device = raw?.body ?? raw
-          return device
-        } catch (e) {
-          return raw
+          // node-switchbot returns a device instance, not a status. The instance
+          // exposes id/name/deviceType/mac but carries no readings, so a caller
+          // reading state.temperature would get undefined. Ask it for status.
+          if (device && typeof device.getStatus === 'function') {
+            const status = await device.getStatus()
+            if (status && typeof status === 'object') {
+              return status
+            }
+            // Fall through to the minimal info below rather than returning the
+            // instance, which would look like a state with every field missing.
+          } else {
+            return device
+          }
+        } catch (e: any) {
+          this.log?.debug?.(`getState: could not read status for ${this.opts.id}:`, e instanceof Error ? e.message : e)
         }
       } catch (e) {
         // ignore and fallback
