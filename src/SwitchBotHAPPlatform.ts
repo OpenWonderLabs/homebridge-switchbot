@@ -41,6 +41,9 @@ export class SwitchBotHAPPlatform {
   private lastConfigHash: string = ''
   /** Interval for periodic config reload */
   private configReloadInterval: NodeJS.Timeout | null = null
+  /** Readable characteristics per device id, so a poll can push new values */
+  private hapPushTargets: Map<string, { device: any, entries: Array<{ service: any, characteristic: any, get: () => Promise<any> }> }> = new Map()
+
   /** Timers for per-device OpenAPI polling */
   private openApiPollTimers: Map<string, NodeJS.Timeout> = new Map()
   /** Timer for batched OpenAPI polling */
@@ -164,6 +167,7 @@ export class SwitchBotHAPPlatform {
     }
     // Register HAP accessories after all devices are created for symmetry with Matter platform
     await this.registerHAPAccessories(createdDevices)
+    this.primeHapValues()
     this.lastConfigHash = newHash
   }
 
@@ -302,6 +306,10 @@ export class SwitchBotHAPPlatform {
               }
               if (getterSetter && typeof getterSetter.get === 'function') {
                 service.getCharacteristic(Characteristic).onGet(getterSetter.get)
+                // Remember it so a poll can push the new value.
+                const target = this.hapPushTargets.get(d.id) ?? { device: created?.instance ?? created, entries: [] }
+                target.entries.push({ service, characteristic: Characteristic, get: getterSetter.get })
+                this.hapPushTargets.set(d.id, target)
               }
               if (getterSetter && typeof getterSetter.set === 'function') {
                 service.getCharacteristic(Characteristic).onSet(async (value: any) => {
@@ -439,6 +447,52 @@ export class SwitchBotHAPPlatform {
    *
    * @returns {void}
    */
+  /**
+   * Read every registered characteristic for a device and notify HomeKit.
+   *
+   * The device state is cached and de-duplicated, so one call costs a single
+   * API request however many characteristics the accessory has.
+   */
+  private async _pushDeviceState(id: string): Promise<void> {
+    const target = this.hapPushTargets.get(id)
+    if (!target?.entries.length) {
+      return
+    }
+    // Read once first. A device that could not be read must push nothing: the
+    // getters report a fallback for a missing field, and pushing that would
+    // replace a good value in HomeKit with one that looks like a measurement.
+    try {
+      const state = await target.device?.getState?.()
+      if (state?.unreadable) {
+        this.log.debug?.(`Skipped pushing updates for ${id}: device not readable`)
+        return
+      }
+    } catch (e) {
+      this.log.debug?.(`Skipped pushing updates for ${id}:`, (e as Error)?.message)
+      return
+    }
+    for (const { service, characteristic, get } of target.entries) {
+      try {
+        const value = await get()
+        if (value !== undefined && value !== null) {
+          service.getCharacteristic(characteristic).updateValue(value)
+        }
+      } catch (e) {
+        this.log.debug?.(`Failed to push an update for ${id}:`, (e as Error)?.message)
+      }
+    }
+  }
+
+  /**
+   * Push once now, so the Home app shows a value without waiting for the first
+   * poll interval.
+   */
+  private primeHapValues(): void {
+    for (const id of this.hapPushTargets.keys()) {
+      void this._pushDeviceState(id)
+    }
+  }
+
   private _setupOpenApiPolling(): void {
     // Clear any existing timers
     for (const t of this.openApiPollTimers.values()) clearInterval(t)
@@ -514,6 +568,7 @@ export class SwitchBotHAPPlatform {
             if (client && typeof client.getDevice === 'function') {
               await client.getDevice(id)
               this.openApiRequestsToday++
+              await this._pushDeviceState(id)
               this.log.debug(`[OpenAPI] Polled device ${id} (per-device interval ${perDeviceRate}s) [${this.openApiRequestsToday}/${dailyLimit}]`)
             }
           } catch (e) {
@@ -553,6 +608,7 @@ export class SwitchBotHAPPlatform {
               try {
                 await client.getDevice(dev.deviceId ?? dev.id)
                 this.openApiRequestsToday++
+                await this._pushDeviceState(dev.deviceId ?? dev.id)
                 this.log.debug(`[OpenAPI] Batched poll device ${dev.deviceId ?? dev.id} [${this.openApiRequestsToday}/${dailyLimit}]`)
               } catch (e) {
                 this.log.debug(`[OpenAPI] Batched polling failed for device ${dev.deviceId ?? dev.id}:`, (e as Error)?.message)

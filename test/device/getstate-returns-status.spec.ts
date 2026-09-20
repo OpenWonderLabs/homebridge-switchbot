@@ -57,7 +57,7 @@ describe('genericDevice.getState', () => {
     const state = await deviceWith(client).getState()
 
     // Not the device instance: that would look like a reading of every field.
-    expect(state).toEqual({ id: 'B0E9FED044E3', type: 'meter' })
+    expect(state).toEqual({ id: 'B0E9FED044E3', type: 'meter', unreadable: true })
     expect(state.temperature).toBeUndefined()
   })
 })
