@@ -1,3 +1,13 @@
+# [5.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v5.0.4...v5.1.0) (2026-09-25)
+
+
+### Bug Fixes
+
+* push polled values to HomeKit instead of discarding them ([#1410](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1410)) ([f60c965](https://github.com/OpenWonderLabs/homebridge-switchbot/commit/f60c9650b153e581b49f5e77c9493419a6e65461)), closes [#1409](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1409) [#1404](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1404)
+* return a device status from getState(), not the device itself ([#1404](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1404)) ([d1a073e](https://github.com/OpenWonderLabs/homebridge-switchbot/commit/d1a073ee0f297b2f9304977d83ccc65ef2f17746))
+
+
+
 ## [5.0.4](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v5.0.3...v5.0.4) (2026-07-10)
 
 
