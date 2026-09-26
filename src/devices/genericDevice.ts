@@ -1364,34 +1364,69 @@ export class RollerShadeDevice extends CurtainDevice {}
 
 export class Hub2Device extends GenericDevice {}
 
+/** Default ppm at or above which HomeKit is told the CO2 level is abnormal. */
+const CO2_ABNORMAL_PPM_DEFAULT = 1000
+
 export class MeterDevice extends GenericDevice {
+  /**
+   * The Meter Pro (CO2) reports carbon dioxide as well. `opts.type` is 'meter'
+   * for every meter variant, so check the configured device type.
+   */
+  protected reportsCO2(): boolean {
+    return /co2/i.test(String((this.opts as any)?.deviceType ?? ''))
+  }
+
+  /** The ppm at which HomeKit reports carbon dioxide as detected. */
+  protected co2AbnormalThreshold(): number {
+    const value = Number((this.cfg as any)?.co2AbnormalThreshold)
+    return Number.isFinite(value) && value > 0 ? value : CO2_ABNORMAL_PPM_DEFAULT
+  }
+
   createHAPAccessory(api: any) {
-    return {
-      services: [
-        {
-          type: 'TemperatureSensor',
-          characteristics: {
-            CurrentTemperature: {
-              get: async () => {
-                const s = await this.getState()
-                return typeof s.temperature === 'number' ? s.temperature : 0
-              },
+    const services: any[] = [
+      {
+        type: 'TemperatureSensor',
+        characteristics: {
+          CurrentTemperature: {
+            get: async () => {
+              const s = await this.getState()
+              return typeof s.temperature === 'number' ? s.temperature : 0
             },
           },
         },
-        {
-          type: 'HumiditySensor',
-          characteristics: {
-            CurrentRelativeHumidity: {
-              get: async () => {
-                const s = await this.getState()
-                return typeof s.humidity === 'number' ? s.humidity : 0
-              },
+      },
+      {
+        type: 'HumiditySensor',
+        characteristics: {
+          CurrentRelativeHumidity: {
+            get: async () => {
+              const s = await this.getState()
+              return typeof s.humidity === 'number' ? s.humidity : 0
             },
           },
         },
-      ],
+      },
+    ]
+
+    if (this.reportsCO2()) {
+      const co2 = async (): Promise<number> => {
+        const s = await this.getState()
+        return typeof s.co2 === 'number' ? s.co2 : 0
+      }
+      services.push({
+        type: 'CarbonDioxideSensor',
+        characteristics: {
+          CarbonDioxideLevel: {
+            get: co2,
+          },
+          CarbonDioxideDetected: {
+            get: async () => ((await co2()) >= this.co2AbnormalThreshold() ? 1 : 0),
+          },
+        },
+      })
     }
+
+    return { services }
   }
 }
 
