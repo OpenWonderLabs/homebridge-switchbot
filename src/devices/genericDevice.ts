@@ -529,7 +529,88 @@ export class GenericDevice extends DeviceBase {
 }
 
 // Specific device classes can extend GenericDevice for custom behavior.
-export class BotDevice extends GenericDevice {}
+export class BotDevice extends GenericDevice {
+  private lastCommand?: { on: boolean, at: number }
+
+  createHAPAccessory(api: any): any {
+    const config = this.cfg.devices?.find((device: any) => (device.deviceId ?? device.id) === this.opts.id)
+    // Keep the old per-device type override for configurations made before v5.
+    const display = config?.botDisplay ?? config?.type ?? 'switch'
+    const pressMode = config?.mode === 'press' || config?.mode === 'multipress'
+      || (display === 'door' && config?.mode !== 'switch')
+
+    const isOn = async () => {
+      if (pressMode) {
+        return false
+      }
+      if (this.lastCommand && Date.now() - this.lastCommand.at < 15_000) {
+        return this.lastCommand.on
+      }
+      const state = await this.getState()
+      return !!(state && (state.on === true || state.state === 'on' || state.power === 'on'))
+    }
+
+    const setOn = async (on: boolean) => {
+      if (pressMode && !on) {
+        return
+      }
+      const command = pressMode ? 'press' : on ? 'turnOn' : 'turnOff'
+      const result = await this.setState({ command, parameter: 'default', commandType: 'command' })
+      if (result !== true && result?.success !== true) {
+        throw new Error(`SwitchBot Bot ${command} failed: ${result?.reason ?? 'unknown error'}`)
+      }
+      if (!pressMode) {
+        this.lastCommand = { on, at: Date.now() }
+      }
+    }
+
+    const control = (name: string, active: number | boolean, inactive: number | boolean, requestedOn: (value: any) => boolean) => ({
+      get: async () => (await isOn()) ? active : inactive,
+      set: async (value: any) => setOn(requestedOn(value)),
+      ...(pressMode ? { refreshAfterSet: [name] } : {}),
+    })
+    const position = () => ({
+      CurrentPosition: { get: async () => (await isOn()) ? 100 : 0 },
+      PositionState: { get: async () => 2 },
+      TargetPosition: control('TargetPosition', 100, 0, value => Number(value) > 0),
+    })
+    const active = (value: any) => Number(value) === 1
+    const presentations: Record<string, { type: string, characteristics: Record<string, any> }> = {
+      switch: { type: 'Switch', characteristics: { On: control('On', true, false, value => value === true) } },
+      outlet: { type: 'Outlet', characteristics: { On: control('On', true, false, value => value === true) } },
+      door: { type: 'Door', characteristics: position() },
+      window: { type: 'Window', characteristics: position() },
+      windowcovering: { type: 'WindowCovering', characteristics: position() },
+      garagedoor: { type: 'GarageDoorOpener', characteristics: {
+        CurrentDoorState: { get: async () => (await isOn()) ? 0 : 1 },
+        TargetDoorState: control('TargetDoorState', 0, 1, value => Number(value) === 0),
+        ObstructionDetected: { get: async () => false },
+      } },
+      lock: { type: 'LockMechanism', characteristics: {
+        LockCurrentState: { get: async () => (await isOn()) ? 0 : 1 },
+        LockTargetState: control('LockTargetState', 0, 1, value => Number(value) === 0),
+      } },
+      faucet: { type: 'Faucet', characteristics: { Active: control('Active', 1, 0, active) } },
+      fan: { type: 'Fanv2', characteristics: { Active: control('Active', 1, 0, active) } },
+      stateful: { type: 'StatefulProgrammableSwitch', characteristics: {
+        ProgrammableSwitchEvent: {},
+        ProgrammableSwitchOutputState: {
+          ...control('ProgrammableSwitchOutputState', 1, 0, active),
+          ...(pressMode ? { refreshAfterSet: ['ProgrammableSwitchOutputState'] } : {}),
+          afterSet: (value: any, service: any, hap: any) => {
+            if (!pressMode || active(value)) {
+              service.getCharacteristic(hap.Characteristic.ProgrammableSwitchEvent).sendEventNotification(0)
+            }
+          },
+        },
+      } },
+    }
+
+    return {
+      services: [presentations[display] ?? presentations.switch],
+    }
+  }
+}
 
 export class CurtainDevice extends GenericDevice {
   private lastKnownPosition = 0

@@ -161,6 +161,36 @@
                 "remote with screen"
               ]
             },
+            "botDisplay": {
+              "type": "string",
+              "title": "Bot HomeKit Display",
+              "description": "For a Bot only: choose its HomeKit service. This changes the Home app presentation, not the Bot's physical mode. The Bot cannot measure the position or state of the device it presses.",
+              "enum": [
+                "switch",
+                "door",
+                "garagedoor",
+                "window",
+                "windowcovering",
+                "lock",
+                "outlet",
+                "fan",
+                "faucet",
+                "stateful"
+              ],
+              "default": "switch"
+            },
+            "mode": {
+              "type": "string",
+              "title": "Bot Physical Mode",
+              "description": "For a Bot only: match its mode in the SwitchBot app. Press sends one press and returns the HomeKit control to its resting state. Switch sends turnOn/turnOff. Legacy Multi-Press currently sends one press. If unset, Door uses Press and other displays use Switch.",
+              "enum": [
+                "",
+                "press",
+                "switch",
+                "multipress"
+              ],
+              "default": ""
+            },
             "connectionPreference": {
               "type": "string",
               "title": "Connection Preference",
