@@ -191,6 +191,17 @@ export const DEVICE_TYPE_NORMALIZATION_MAP: Record<string, string> = {
 
   // Additional normalization for new/unknown types from logs
   'woplugus': 'Plug Mini (US)',
+
+  // Product-specific identities reported by node-switchbot 5 (pySwitchbot 3.0.0 parity)
+  'woplugjp': 'Plug Mini (JP)',
+  'wocurtain3': 'Curtain3',
+  'wometerplus': 'Meter Plus',
+  'wothpc': 'Meter Pro (CO2)',
+  'woceilingpro': 'Ceiling Light Pro',
+  'wolinkmini': 'Hub Mini',
+  'woiosensorth': 'WoIOSensor',
+  'outdoor meter': 'WoIOSensor',
+  'indoor/outdoor thermo-hygrometer': 'WoIOSensor',
   // Removed duplicate keys below, only last occurrence kept
   // 'plug mini us': 'plug mini (us)', // duplicate, removed
   // 'plug us': 'plug mini (us)', // duplicate, removed
