@@ -1,3 +1,15 @@
+# [5.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v5.1.0...v5.2.0) (2026-10-08)
+
+### Bug Fixes
+
+* normalize product-specific model identities from node-switchbot v5 so recent device variants resolve to the correct accessory classes
+* add regression coverage for product identity normalization and accessory mapping
+
+### Housekeeping
+
+* refresh project dependencies and compatibility configuration for the current Homebridge/Vitest/TypeDoc toolchain
+
+
 # [5.1.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v5.0.4...v5.1.0) (2026-09-25)
 
 
