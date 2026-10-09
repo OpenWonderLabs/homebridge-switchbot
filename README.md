@@ -176,6 +176,8 @@ Click **Save Advanced Settings** to apply changes. These settings match the opti
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini), [SwitchBot Hub 2](https://us.switch-bot.com/products/switchbot-hub-2), or [SwitchBot Hub 3](https://us.switch-bot.com/products/switchbot-hub-3) Required
     - Enable Cloud Services for Device on SwitchBot App
 - [SwitchBot Bot](https://www.switch-bot.com/products/switchbot-bot)
+  - **Bot HomeKit Display** (`botDisplay` in `config.json`) can show a Bot as a Switch, Door, Garage Door, Window, Window Covering, Lock, Outlet, Fan, Faucet, or Stateful Programmable Switch. The default is Switch. The legacy per-device `type` setting still works. Stateful Programmable Switch needs a third-party Home app.
+  - Set **Bot Physical Mode** (`mode`) to match the SwitchBot app: **Press** sends one `press` command when activated and returns HomeKit to its resting state; **Switch** sends `turnOn`/`turnOff`. If unset, Door uses Press and other displays use Switch. A Bot has no sensor for the door, window, lock, or other object it operates; their HomeKit state reflects only the Bot control, not the object's physical state.
   - Supports OpenAPI & Bluetooth Low Energy (BLE) Connections
   - If using OpenAPI:
     - [SwitchBot Hub Mini](https://www.switch-bot.com/products/switchbot-hub-mini), [SwitchBot Hub 2](https://us.switch-bot.com/products/switchbot-hub-2), or [SwitchBot Hub 3](https://us.switch-bot.com/products/switchbot-hub-3) Required

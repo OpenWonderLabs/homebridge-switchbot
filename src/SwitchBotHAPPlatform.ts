@@ -287,9 +287,13 @@ export class SwitchBotHAPPlatform {
               continue
             }
             const service = accessory.getService(Service) || accessory.addService(Service)
-            const charNames = Object.keys(s.characteristics || {})
+            const characteristicUUIDs = new Set(
+              Object.keys(s.characteristics || {})
+                .map(name => hap.Characteristic[name]?.UUID)
+                .filter(Boolean),
+            )
             for (const existingChar of service.characteristics.slice()) {
-              if (!charNames.includes(existingChar.displayName)) {
+              if (!characteristicUUIDs.has(existingChar.UUID)) {
                 service.removeCharacteristic(existingChar)
               }
             }
@@ -318,20 +322,30 @@ export class SwitchBotHAPPlatform {
                   await getterSetter.set(value)
 
                   const refreshAfterSet = Array.isArray(getterSetter.refreshAfterSet) ? getterSetter.refreshAfterSet : []
-                  for (const refreshCharName of refreshAfterSet) {
-                    const refreshGetterSetter: any = (s.characteristics || {})[refreshCharName]
-                    if (!refreshGetterSetter || typeof refreshGetterSetter.get !== 'function') {
-                      continue
-                    }
-                    const RefreshCharacteristic = (hap.Characteristic as any)[refreshCharName]
-                    if (!RefreshCharacteristic) {
-                      continue
-                    }
-                    try {
-                      service.getCharacteristic(RefreshCharacteristic).updateValue(await refreshGetterSetter.get())
-                    } catch (e) {
-                      this.log.debug?.(`Failed to refresh ${refreshCharName} after setting ${charName}`, e)
-                    }
+                  // HAP stores the requested value after onSet resolves. Refresh on the next tick
+                  // so a momentary control can return to its resting value.
+                  if (refreshAfterSet.length > 0 || typeof getterSetter.afterSet === 'function') {
+                    setTimeout(async () => {
+                      for (const refreshCharName of refreshAfterSet) {
+                        const refreshGetterSetter: any = (s.characteristics || {})[refreshCharName]
+                        const RefreshCharacteristic = (hap.Characteristic as any)[refreshCharName]
+                        if (!RefreshCharacteristic || typeof refreshGetterSetter?.get !== 'function') {
+                          continue
+                        }
+                        try {
+                          service.getCharacteristic(RefreshCharacteristic).updateValue(await refreshGetterSetter.get())
+                        } catch (e) {
+                          this.log.debug?.(`Failed to refresh ${refreshCharName} after setting ${charName}`, e)
+                        }
+                      }
+                      if (typeof getterSetter.afterSet === 'function') {
+                        try {
+                          await getterSetter.afterSet(value, service, hap)
+                        } catch (e) {
+                          this.log.debug?.(`Failed afterSet for ${charName}`, e)
+                        }
+                      }
+                    }, 0)
                   }
                 })
               }
@@ -387,6 +401,8 @@ export class SwitchBotHAPPlatform {
       id: d.deviceId ?? d.id,
       type: d.configDeviceType ?? d.type,
       name: d.configDeviceName ?? d.name,
+      botDisplay: d.botDisplay ?? d.type,
+      mode: d.mode,
     })))
   }
 
