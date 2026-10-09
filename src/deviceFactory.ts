@@ -64,6 +64,9 @@ const DEVICE_CLASS_MAP: Record<string, any> = {
   'meterplus': MeterDevice,
   'meterpro': MeterDevice,
   'meterpro(co2)': MeterDevice,
+  'meter plus': MeterDevice,
+  'meter pro': MeterDevice,
+  'meter pro (co2)': MeterDevice,
   'walletfinder': WalletFinderDevice,
   'plug': PlugDevice,
   'plug mini (eu)': PlugMiniDevice,
@@ -138,7 +141,8 @@ const DEVICE_CLASS_MAP: Record<string, any> = {
 
 function classForType(type: string) {
   const rawKey = (type || '').toLowerCase()
-  const key = DEVICE_TYPE_NORMALIZATION_MAP[rawKey] ?? rawKey
+  // Normalised types are canonical display names; class map keys are lowercase
+  const key = (DEVICE_TYPE_NORMALIZATION_MAP[rawKey] ?? rawKey).toLowerCase()
   return DEVICE_CLASS_MAP[key] ?? GenericDevice
 }
 
