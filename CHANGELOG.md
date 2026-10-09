@@ -1,3 +1,12 @@
+# [5.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v5.1.1...v5.2.0) (2026-10-09)
+
+
+### Features
+
+* add a CarbonDioxideSensor service for the Meter Pro (CO2) ([#1413](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1413)) ([588a59d](https://github.com/OpenWonderLabs/homebridge-switchbot/commit/588a59d8adcde2d77a6c3fb1bf703c1d5cf2cf01)), closes [#1197](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1197) [#1112](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1112) [#1197](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1197)
+
+
+
 # [5.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v5.1.0...v5.2.0) (2026-10-08)
 
 ### Bug Fixes
