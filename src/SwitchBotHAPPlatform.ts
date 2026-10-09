@@ -155,7 +155,9 @@ export class SwitchBotHAPPlatform {
         _raw: raw,
       }
       const type: string = normalizeTypeForMatter(d.type)
-      const deviceOpts: any = { id: d.id, type, name: d.name, encryptionKey: d.encryptionKey, keyId: d.keyId, log: this.log }
+      // `type` is normalised for class selection, so MeterPro(CO2) and Meter both
+      // become 'meter'. Pass the configured type too, so a class can tell them apart.
+      const deviceOpts: any = { id: d.id, type, deviceType: d.type, name: d.name, encryptionKey: d.encryptionKey, keyId: d.keyId, log: this.log }
       this.log.debug(`[HAP/Debug] Device options for ${d.name ?? d.id}:`, JSON.stringify(deviceOpts, null, 2))
       try {
         const created = await createDevice(deviceOpts, this.config, false)

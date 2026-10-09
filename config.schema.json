@@ -33,6 +33,14 @@
         "description": "Enable or disable BLE (Bluetooth Low Energy) support. If disabled, only OpenAPI (cloud) will be used.",
         "default": true
       },
+      "co2AbnormalThreshold": {
+        "type": "integer",
+        "title": "CO2 Detected Threshold (ppm)",
+        "description": "Meter Pro (CO2) only. At or above this level HomeKit reports carbon dioxide as detected.",
+        "default": 1000,
+        "minimum": 400,
+        "maximum": 5000
+      },
       "devices": {
         "type": "array",
         "title": "Devices",
@@ -320,7 +328,8 @@
         "dailyApiResetLocalMidnight",
         "webhookOnlyOnReserve",
         "matterBatchConcurrency",
-        "matterBatchJitter"
+        "matterBatchJitter",
+        "co2AbnormalThreshold"
       ]
     }
   ]

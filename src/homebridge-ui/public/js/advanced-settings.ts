@@ -29,6 +29,7 @@ async function loadAdvancedSettings(): Promise<void> {
     ;(document.getElementById('enableBLE') as HTMLInputElement).checked = config.enableBLE !== false
     ;(document.getElementById('blePollingEnabled') as HTMLInputElement).checked = config.blePollingEnabled !== false
     ;(document.getElementById('blePollIntervalMs') as HTMLInputElement).value = String(config.blePollIntervalMs ?? 600000)
+    ;(document.getElementById('co2AbnormalThreshold') as HTMLInputElement).value = String(config.co2AbnormalThreshold ?? 1000)
   } catch (e) {
     (document.getElementById('advancedSettingsStatus') as HTMLElement).textContent = 'Failed to load settings.'
   }
@@ -67,6 +68,7 @@ async function saveAdvancedSettings(): Promise<void> {
     config.enableBLE = (document.getElementById('enableBLE') as HTMLInputElement).checked
     config.blePollingEnabled = (document.getElementById('blePollingEnabled') as HTMLInputElement).checked
     config.blePollIntervalMs = Number((document.getElementById('blePollIntervalMs') as HTMLInputElement).value) || 600000
+    config.co2AbnormalThreshold = Number((document.getElementById('co2AbnormalThreshold') as HTMLInputElement).value) || 1000
 
     // Update config in memory and save to disk
     if (typeof homebridge.updatePluginConfig === 'function') {
