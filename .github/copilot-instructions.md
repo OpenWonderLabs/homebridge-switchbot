@@ -224,6 +224,10 @@ npm run lint      # eslint (src, test, UI html/js) then tsc --noEmit
   `DEVICE_TYPE_NORMALIZATION_MAP` in `src/device-types.ts`, map it in `DEVICE_CLASS_MAP` in
   `src/deviceFactory.ts`, then add a `createDevice` test under `test/device/`.
 - **New accessory behaviour:** add or extend a class in `src/devices/genericDevice.ts`.
+- **Commands:** accessories send generic commands (`turnOn`, `setBrightness`, `setPosition`...).
+  `src/deviceCommandMapper.ts` maps each to the node-switchbot method that performs it and uses it
+  when the device has that method, so no per-type entry is needed. Convert units there (HomeKit
+  sends mireds and `"hue,saturation"`; node-switchbot takes kelvin and RGB).
 - **Saved configs that would stop resolving:** handle them in the normalization map or
   `src/homebridge-ui/utils/device-migration.ts`.
 - **Config UI changes:** edit `src/homebridge-ui/`, then `npm run build`.
