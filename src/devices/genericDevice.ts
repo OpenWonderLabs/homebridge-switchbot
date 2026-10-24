@@ -536,8 +536,10 @@ export class BotDevice extends GenericDevice {
     const config = this.cfg.devices?.find((device: any) => (device.deviceId ?? device.id) === this.opts.id)
     // Keep the old per-device type override for configurations made before v5.
     const display = config?.botDisplay ?? config?.type ?? 'switch'
-    const pressMode = config?.mode === 'press' || config?.mode === 'multipress'
-      || (display === 'door' && config?.mode !== 'switch')
+    // `botMode` is accepted as an alias for `mode` (it was proposed in #1395 before `mode` existed).
+    const mode = config?.mode || config?.botMode
+    const pressMode = mode === 'press' || mode === 'multipress'
+      || (display === 'door' && mode !== 'switch')
 
     const isOn = async () => {
       if (pressMode) {
