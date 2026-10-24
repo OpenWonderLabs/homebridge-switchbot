@@ -4,6 +4,7 @@
  */
 import type { API } from 'homebridge'
 
+import { repairCachedAccessories } from './cacheRepair.js'
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js'
 import { SwitchBotHAPPlatform } from './SwitchBotHAPPlatform.js'
 import { SwitchBotMatterPlatform } from './SwitchBotMatterPlatform.js'
@@ -20,6 +21,8 @@ import { createPlatformProxy } from './utils.js'
  * @property {Function} createPlatformProxy - Factory for the platform proxy constructor.
  */
 export default (api: API): void => {
+  // Runs before a child bridge loads its cache, so a cache HAP cannot read is fixed first (#1424).
+  repairCachedAccessories(api, message => console.warn(`[${PLATFORM_NAME}] ${message}`))
   const ProxyCtor = createPlatformProxy(SwitchBotHAPPlatform, SwitchBotMatterPlatform)
   api.registerPlatform(PLUGIN_NAME, PLATFORM_NAME, ProxyCtor as any)
 }

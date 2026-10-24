@@ -272,14 +272,18 @@ export class SwitchBotHAPPlatform {
         // Add basic service descriptor from device (symmetrical to Matter: remove stale services/chars)
         const accDesc = await created.createAccessory?.(this.api)
         if (accDesc && accDesc.services) {
-          const serviceTypes = accDesc.services.map((s: any) => s.type)
+          // Match services by UUID, not class name: HAP restores a cached service whose
+          // class name was not stored as a plain `Service`. Matching by name then removed
+          // AccessoryInformation, and HAP crashes loading that cache on the next start (#1424).
+          const wantedServiceUUIDs = new Set(
+            accDesc.services.map((s: any) => hap.Service[s.type]?.UUID).filter(Boolean),
+          )
+          const infoUUID = hap.Service.AccessoryInformation?.UUID
           for (const existingService of accessory.services.slice()) {
-            // Never remove AccessoryInformation - required for cache deserialization
-            if (existingService.constructor && existingService.constructor.name
-              && existingService.constructor.name !== 'AccessoryInformation'
-              && !serviceTypes.includes(existingService.constructor.name)) {
-              accessory.removeService(existingService)
+            if (existingService.UUID === infoUUID || wantedServiceUUIDs.has(existingService.UUID)) {
+              continue
             }
+            accessory.removeService(existingService)
           }
           for (const s of accDesc.services) {
             const Service = hap.Service[s.type] || hap.Service[s.type]
