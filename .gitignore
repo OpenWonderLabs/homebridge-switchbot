@@ -8,3 +8,7 @@ coverage/
 .DS_Store
 src/.DS_Store
 .github/.DS_Store
+
+# Compiled output belongs in dist/. A .js file next to its .ts shadows it under Vitest.
+src/**/*.js
+src/**/*.js.map
