@@ -91,8 +91,8 @@ export class GenericDevice extends DeviceBase {
     this._blePollIntervalMs = pollMs
     // Subscribe to BLE notifications if supported (node-switchbot v4+)
     this._subscribeBLENotifications()
-    // Start BLE polling fallback if enabled
-    if (this._blePollingEnabled) {
+    // Start BLE polling fallback if enabled, and only when BLE itself is enabled
+    if (this._blePollingEnabled && (cfg as any)?.enableBLE !== false) {
       this._startBlePolling()
     }
   }
@@ -106,6 +106,12 @@ export class GenericDevice extends DeviceBase {
     }
     this._blePollTimer = setInterval(async () => {
       try {
+        // Only poll over BLE. For a device without a BLE connection, getState() reads status over
+        // the OpenAPI, which the regular refresh already does within the daily API budget.
+        const nodeDevice = this.client?.devices?.get?.(this.opts.id)
+        if (typeof nodeDevice?.hasBLE !== 'function' || !nodeDevice.hasBLE()) {
+          return
+        }
         this.log.debug(`[BLE] Polling getState() for device ${this.opts.id}`)
         await this.getState()
       } catch (e) {

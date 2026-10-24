@@ -4,6 +4,9 @@ import type { SwitchBot } from 'node-switchbot'
 import { getDeviceCommandHandler } from './deviceCommandMapper.js'
 import { CharacteristicMissingError, SwitchbotAuthenticationError, SwitchbotOperationError } from './errors.js'
 
+// Commands that set the same state and may replace each other while debounced
+const WRITE_GROUP: Record<string, string> = { turnOn: 'power', turnOff: 'power', toggle: 'power' }
+
 export interface ISwitchBotClient {
   init: () => Promise<void>
   getDevice: (id: string) => Promise<any>
@@ -23,6 +26,7 @@ export class SwitchBotClient implements ISwitchBotClient {
   private writeDebounceMs = 100
   private discoveryCacheTtlMs = 30_000
   private lastDiscoveryAt = 0
+  private discoveryInFlight?: Promise<any[]>
   private logger: import('homebridge').Logger
   private pendingWrites: Map<string, { timer: any, body: any, resolvers: Array<{ resolve: (v: any) => void, reject: (e: any) => void }> }> = new Map()
 
@@ -127,8 +131,12 @@ export class SwitchBotClient implements ISwitchBotClient {
       return this._doSetDeviceState(id, body)
     }
 
+    // Coalesce repeated writes of the same operation only. Power commands share one key, so a
+    // quick on/off/on sends the last one; other commands (brightness, color, position...) keep
+    // their own key so a turnOn sent together with setBrightness is not dropped.
+    const key = `${id}\u0000${WRITE_GROUP[body?.command] ?? body?.command ?? ''}`
     return new Promise((resolve, reject) => {
-      const existing = this.pendingWrites.get(id)
+      const existing = this.pendingWrites.get(key)
       if (existing) {
         existing.body = body
         existing.resolvers.push({ resolve, reject })
@@ -137,11 +145,11 @@ export class SwitchBotClient implements ISwitchBotClient {
 
       const resolvers: Array<{ resolve: (v: any) => void, reject: (e: any) => void }> = [{ resolve, reject }]
       const timer = setTimeout(async () => {
-        const entry = this.pendingWrites.get(id)
+        const entry = this.pendingWrites.get(key)
         if (!entry) {
           return
         }
-        this.pendingWrites.delete(id)
+        this.pendingWrites.delete(key)
         try {
           const out = await this._doSetDeviceState(id, entry.body)
           for (const r of entry.resolvers) r.resolve(out)
@@ -157,7 +165,7 @@ export class SwitchBotClient implements ISwitchBotClient {
         }
       }, this.writeDebounceMs)
 
-      this.pendingWrites.set(id, { timer, body, resolvers })
+      this.pendingWrites.set(key, { timer, body, resolvers })
     })
   }
 
@@ -175,7 +183,7 @@ export class SwitchBotClient implements ISwitchBotClient {
       if (!command) {
         throw new SwitchbotOperationError('No command specified in body', 'no_command')
       }
-      const handler = getDeviceCommandHandler(deviceType, command)
+      const handler = getDeviceCommandHandler(deviceType, command, device)
       if (!handler) {
         throw new SwitchbotOperationError(`Unsupported command '${command}' for device type '${deviceType}'`, 'unsupported_command')
       }
@@ -255,12 +263,25 @@ export class SwitchBotClient implements ISwitchBotClient {
 
     const fromManager = this.getManagedDevices()
     const cacheValid = this.discoveryCacheTtlMs > 0 && (Date.now() - this.lastDiscoveryAt) < this.discoveryCacheTtlMs
-    if (!force && cacheValid && fromManager.length > 0) {
+    // A forced refresh (a device was not found) still respects the cache period once a discovery
+    // has run: an offline device would otherwise trigger a BLE scan and an OpenAPI call per lookup.
+    if (cacheValid && (!force || fromManager.length > 0)) {
       return fromManager
     }
 
-    const discovered = await this.client.discover()
-    this.lastDiscoveryAt = Date.now()
-    return discovered
+    // Share one discovery between concurrent callers; each BLE scan also resets the last one's results.
+    if (!this.discoveryInFlight) {
+      const client = this.client
+      this.discoveryInFlight = (async () => {
+        try {
+          const discovered = await client.discover()
+          this.lastDiscoveryAt = Date.now()
+          return discovered
+        } finally {
+          this.discoveryInFlight = undefined
+        }
+      })()
+    }
+    return this.discoveryInFlight
   }
 }

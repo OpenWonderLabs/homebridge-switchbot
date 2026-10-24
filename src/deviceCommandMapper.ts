@@ -1,8 +1,10 @@
 // deviceCommandMapper.ts
-// Maps HAP/Matter commands to node-switchbot device methods for all supported device types
-
-// This is a starter mapping. Expand as needed for new device types and commands.
-// Each device type maps to a set of commands, each command maps to a function that takes (device, body) and returns a Promise.
+// Maps HAP/Matter commands to node-switchbot device methods.
+//
+// Accessories send generic commands (turnOn, setBrightness, setPosition, ...). Each command maps to
+// the node-switchbot method that performs it, and is used when the device has that method. This
+// works for every node-switchbot device class without listing device type strings, which differ
+// between the OpenAPI ("Plug Mini (US)") and BLE ("Meter Plus") and were often missing here.
 
 export type DeviceCommandHandler = (device: any, body: any) => Promise<any>
 
@@ -10,324 +12,147 @@ export interface DeviceCommandMap {
   [command: string]: DeviceCommandHandler
 }
 
-export interface DeviceTypeCommandMap {
-  [deviceType: string]: DeviceCommandMap
+interface CommandSpec {
+  /** Methods that can carry out the command; the first one the device has is used */
+  methods: string[]
+  handler: (device: any, body: any, method: string) => Promise<any>
 }
 
-export const deviceTypeCommandMap: DeviceTypeCommandMap = {
-  // SwitchBot AI Hub (read-only/generic)
-  'ai hub': {},
-  // SwitchBot Cameras (read-only/generic)
-  'indoor cam': {},
-  'pan/tilt cam': {},
-  'pan/tilt cam 2k': {},
-  'pan/tilt cam plus 2k': {},
-  'pan/tilt cam plus 3k': {},
-  // SwitchBot Air Purifiers (read-only/generic)
-  'air purifier pm2.5': {},
-  'air purifier table pm2.5': {},
-  'air purifier voc': {},
-  'air purifier table voc': {},
-  // SwitchBot Home Climate Panel (read-only/generic)
-  'home climate panel': {},
-  // SwitchBot WoIOSensor (read-only/generic)
-  'woiosensor': {},
-  // SwitchBot Candle Warmer Lamp
-  'candle warmer lamp': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-  },
-  // SwitchBot Hubs (read-only/generic)
-  'hub': {},
-  'hub 2': {},
-  'hub 3': {},
-  'hub mini': {},
-  'hub plus': {},
-  // SwitchBot Robot Vacuum Cleaner K20 Plus Pro
-  'robot vacuum cleaner k20 plus pro': {
-    start: async device => device.start(),
-    stop: async device => device.stop(),
-    pause: async device => device.pause(),
-    dock: async device => device.dock(),
-    resume: async device => device.resume(),
-    locate: async device => device.locate(),
-  },
-  // SwitchBot Robot Vacuum Cleaner S1
-  'robot vacuum cleaner s1': {
-    start: async device => device.start(),
-    stop: async device => device.stop(),
-    pause: async device => device.pause(),
-    dock: async device => device.dock(),
-    resume: async device => device.resume(),
-    locate: async device => device.locate(),
-  },
-  // SwitchBot Robot Vacuum Cleaner S1 Plus
-  'robot vacuum cleaner s1 plus': {
-    start: async device => device.start(),
-    stop: async device => device.stop(),
-    pause: async device => device.pause(),
-    dock: async device => device.dock(),
-    resume: async device => device.resume(),
-    locate: async device => device.locate(),
-  },
-  // SwitchBot Robot Vacuum Cleaner S10
-  'robot vacuum cleaner s10': {
-    start: async device => device.start(),
-    stop: async device => device.stop(),
-    pause: async device => device.pause(),
-    dock: async device => device.dock(),
-    resume: async device => device.resume(),
-    locate: async device => device.locate(),
-  },
-  // SwitchBot Robot Vacuum Cleaner S20
-  'robot vacuum cleaner s20': {
-    start: async device => device.start(),
-    stop: async device => device.stop(),
-    pause: async device => device.pause(),
-    dock: async device => device.dock(),
-    resume: async device => device.resume(),
-    locate: async device => device.locate(),
-  },
-  // SwitchBot Relay Switch 2PM
-  'relay switch 2pm': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-  },
-  // SwitchBot K10+
-  'k10+': {
-    start: async device => device.start(),
-    stop: async device => device.stop(),
-    pause: async device => device.pause(),
-    dock: async device => device.dock(),
-    resume: async device => device.resume(),
-    locate: async device => device.locate(),
-  },
-  // SwitchBot K10+ Pro
-  'k10+ pro': {
-    start: async device => device.start(),
-    stop: async device => device.stop(),
-    pause: async device => device.pause(),
-    dock: async device => device.dock(),
-    resume: async device => device.resume(),
-    locate: async device => device.locate(),
-  },
-  // SwitchBot Robot Vacuum Cleaner K10+ Pro Combo
-  'robot vacuum cleaner k10+ pro combo': {
-    start: async device => device.start(),
-    stop: async device => device.stop(),
-    pause: async device => device.pause(),
-    dock: async device => device.dock(),
-    resume: async device => device.resume(),
-    locate: async device => device.locate(),
-  },
-  // SwitchBot Robot Vacuum Cleaner K11+
-  'robot vacuum cleaner k11+': {
-    start: async device => device.start(),
-    stop: async device => device.stop(),
-    pause: async device => device.pause(),
-    dock: async device => device.dock(),
-    resume: async device => device.resume(),
-    locate: async device => device.locate(),
-  },
-  // SwitchBot MeterPro(CO2) (read-only)
-  'meterpro(co2)': {},
-  // SwitchBot Water Detector (read-only)
-  'water detector': {},
-  // SwitchBot Garage Door Opener
-  'garage door opener': {
-    open: async device => device.open(),
-    close: async device => device.close(),
-    stop: async device => device.stop(),
-  },
-  // SwitchBot Relay Switch 1
-  'relay switch 1': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-  },
-  // SwitchBot Relay Switch 1PM
-  'relay switch 1pm': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-  },
-  // SwitchBot Smart Radiator Thermostat (read-only or not directly controllable)
-  'smart radiator thermostat': {},
-  // SwitchBot Humidifier2
-  'humidifier2': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-    setMode: async (device, body) => device.setMode(body?.parameter),
-    setHumidity: async (device, body) => device.setHumidity(body?.parameter),
-  },
-  // SwitchBot MeterPlus (read-only)
-  'meterplus': {},
-  // SwitchBot Meter Pro (read-only)
-  'meter pro': {},
-  // SwitchBot MeterPro (read-only)
-  'meterpro': {},
-  // SwitchBot RGBICWW Floor Lamp
-  'rgbicww floor lamp': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-    setBrightness: async (device, body) => device.setBrightness(body?.parameter),
-    setColor: async (device, body) => device.setColor(body?.parameter),
-  },
-  // SwitchBot RGBICWW Strip Light
-  'rgbicww strip light': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-    setBrightness: async (device, body) => device.setBrightness(body?.parameter),
-    setColor: async (device, body) => device.setColor(body?.parameter),
-  },
-  // SwitchBot Circulator Fan
-  'circulator fan': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-    setSpeed: async (device, body) => device.setSpeed(body?.parameter),
-    swing: async device => device.swing(),
-  },
-  // SwitchBot Battery Circulator Fan
-  'battery circulator fan': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-    setSpeed: async (device, body) => device.setSpeed(body?.parameter),
-    swing: async device => device.swing(),
-  },
-  // SwitchBot Standing Circulator Fan
-  'standing circulator fan': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-    setSpeed: async (device, body) => device.setSpeed(body?.parameter),
-    swing: async device => device.swing(),
-  },
-  // SwitchBot Bot
-  'bot': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-    press: async device => device.press(),
-  },
-  // SwitchBot Curtain
-  'curtain': {
-    open: async device => device.open(),
-    close: async device => device.close(),
-    pause: async device => device.pause(),
-    setPosition: async (device, body) => device.setPosition(body?.parameter),
-  },
-  // SwitchBot Blind Tilt
-  'blind tilt': {
-    open: async device => device.open(),
-    close: async device => device.close(),
-    pause: async device => device.pause(),
-    setPosition: async (device, body) => device.setPosition(body?.parameter),
-  },
-  // SwitchBot Roller Shade
-  'roller shade': {
-    open: async device => device.open(),
-    close: async device => device.close(),
-    pause: async device => device.pause(),
-    setPosition: async (device, body) => device.setPosition(body?.parameter),
-  },
-  // SwitchBot Plug
-  'plug': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-  },
-  // SwitchBot Strip Light 3
-  'strip light 3': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-    setBrightness: async (device, body) => device.setBrightness(body?.parameter),
-    setColor: async (device, body) => device.setColor(body?.parameter),
-  },
-  // SwitchBot Floor Lamp
-  'floor lamp': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-    setBrightness: async (device, body) => device.setBrightness(body?.parameter),
-    setColor: async (device, body) => device.setColor(body?.parameter),
-  },
-  // SwitchBot RGBIC Neon Rope Light
-  'rgbic neon rope light': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-    setBrightness: async (device, body) => device.setBrightness(body?.parameter),
-    setColor: async (device, body) => device.setColor(body?.parameter),
-  },
-  // SwitchBot RGBIC Neon Wire Rope Light
-  'rgbic neon wire rope light': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-    setBrightness: async (device, body) => device.setBrightness(body?.parameter),
-    setColor: async (device, body) => device.setColor(body?.parameter),
-  },
-  // SwitchBot Plug Mini
-  'plug mini': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-  },
-  // SwitchBot Color Bulb
-  'color bulb': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-    setBrightness: async (device, body) => device.setBrightness(body?.parameter),
-    setColor: async (device, body) => device.setColor(body?.parameter),
-  },
-  // SwitchBot Light Strip
-  'light strip': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-    setBrightness: async (device, body) => device.setBrightness(body?.parameter),
-    setColor: async (device, body) => device.setColor(body?.parameter),
-  },
-  // SwitchBot Fan
-  'fan': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-    setSpeed: async (device, body) => device.setSpeed(body?.parameter),
-    swing: async device => device.swing(),
-  },
-  // SwitchBot Lock
-  'lock': {
-    lock: async device => device.lock(),
-    unlock: async device => device.unlock(),
-  },
-  // SwitchBot Curtain 3
-  'curtain3': {
-    open: async device => device.open(),
-    close: async device => device.close(),
-    pause: async device => device.pause(),
-    setPosition: async (device, body) => device.setPosition(body?.parameter),
-  },
-  // SwitchBot Meter
-  'meter': {}, // Read-only
-  // SwitchBot Motion Sensor
-  'motion sensor': {}, // Read-only
-  // SwitchBot Contact Sensor
-  'contact sensor': {}, // Read-only
-  // SwitchBot Humidifier
-  'humidifier': {
-    turnOn: async device => device.turnOn(),
-    turnOff: async device => device.turnOff(),
-    setMode: async (device, body) => device.setMode(body?.parameter),
-    setHumidity: async (device, body) => device.setHumidity(body?.parameter),
-  },
-  // SwitchBot Vacuum
-  'vacuum': {
-    start: async device => device.start(),
-    stop: async device => device.stop(),
-    pause: async device => device.pause(),
-    dock: async device => device.dock(),
-    resume: async device => device.resume(),
-    locate: async device => device.locate(),
-  },
-  // Add more device types and commands as needed
+function numberParameter(body: any): number {
+  const value = Number(body?.parameter)
+  if (!Number.isFinite(value)) {
+    throw new TypeError(`Expected a number, got ${JSON.stringify(body?.parameter)}`)
+  }
+  return value
 }
 
-// Helper to get the handler for a device type and command
-export function getDeviceCommandHandler(deviceType: string, command: string): DeviceCommandHandler | undefined {
-  const typeKey = deviceType.toLowerCase()
-  const typeMap = deviceTypeCommandMap[typeKey]
-  if (!typeMap) {
+/**
+ * HomeKit and Matter send color temperature in mireds (about 140-500); node-switchbot expects
+ * kelvin (2700-6500). Values above 1000 are taken as kelvin already.
+ */
+export function toKelvin(value: number): number {
+  const kelvin = value > 1000 ? value : 1_000_000 / value
+  return Math.round(Math.min(6500, Math.max(2700, kelvin)))
+}
+
+/** Hue 0-360, saturation 0-100, at full value, to RGB 0-255 */
+export function hsToRgb(hue: number, saturation: number): [number, number, number] {
+  const h = (((hue % 360) + 360) % 360) / 60
+  const s = Math.min(100, Math.max(0, saturation)) / 100
+  const c = s
+  const x = c * (1 - Math.abs((h % 2) - 1))
+  const [r, g, b] = h < 1
+    ? [c, x, 0]
+    : h < 2
+      ? [x, c, 0]
+      : h < 3
+        ? [0, c, x]
+        : h < 4
+          ? [0, x, c]
+          : h < 5 ? [x, 0, c] : [c, 0, x]
+  const m = 1 - c
+  return [r, g, b].map(v => Math.round((v + m) * 255)) as [number, number, number]
+}
+
+/**
+ * Parse a color parameter: `"hue,saturation"` (from HomeKit), `"r:g:b"` (OpenAPI style) or
+ * `"#rrggbb"`.
+ */
+export function toRgb(parameter: unknown): [number, number, number] {
+  const text = String(parameter ?? '').trim()
+  const hex = /^#?([0-9a-f]{6})$/i.exec(text)
+  if (hex) {
+    const n = Number.parseInt(hex[1], 16)
+    return [(n >> 16) & 0xFF, (n >> 8) & 0xFF, n & 0xFF]
+  }
+  if (text.includes(':')) {
+    const parts = text.split(':').map(Number)
+    if (parts.length === 3 && parts.every(Number.isFinite)) {
+      return parts.map(v => Math.round(Math.min(255, Math.max(0, v)))) as [number, number, number]
+    }
+  }
+  if (text.includes(',')) {
+    const [hue, saturation] = text.split(',').map(Number)
+    if (Number.isFinite(hue) && Number.isFinite(saturation)) {
+      return hsToRgb(hue, saturation)
+    }
+  }
+  throw new TypeError(`Unrecognised color ${JSON.stringify(parameter)}`)
+}
+
+const call = (method: string) => ({ methods: [method], handler: (device: any) => device[method]() })
+
+const commandSpecs: Record<string, CommandSpec> = {
+  turnOn: call('turnOn'),
+  turnOff: call('turnOff'),
+  toggle: call('toggle'),
+  press: call('press'),
+  open: call('open'),
+  close: call('close'),
+  pause: call('pause'),
+  lock: call('lock'),
+  unlock: call('unlock'),
+  setBrightness: {
+    methods: ['setBrightness'],
+    handler: (device, body) => device.setBrightness(numberParameter(body)),
+  },
+  setColorTemperature: {
+    methods: ['setColorTemperature', 'setColorTemp'],
+    handler: (device, body, method) => {
+      const kelvin = toKelvin(numberParameter(body))
+      return method === 'setColorTemp' ? device.setColorTemp(2700, 6500, kelvin) : device.setColorTemperature(kelvin)
+    },
+  },
+  setColor: {
+    methods: ['setColor'],
+    handler: (device, body) => device.setColor(...toRgb(body?.parameter)),
+  },
+  setPosition: {
+    methods: ['setPosition'],
+    handler: (device, body) => device.setPosition(numberParameter(body)),
+  },
+  setFanSpeed: {
+    methods: ['setFanSpeed', 'setSpeed'],
+    handler: (device, body, method) => device[method](numberParameter(body)),
+  },
+  setMode: {
+    methods: ['setMode'],
+    handler: (device, body) => device.setMode(body?.parameter),
+  },
+  setHumidity: {
+    methods: ['setTargetHumidity', 'setHumidity', 'setLevel'],
+    handler: (device, body, method) => device[method](numberParameter(body)),
+  },
+  // Vacuums: node-switchbot uses cleanUp/returnToDock with the BLE protocol version
+  start: {
+    methods: ['cleanUp', 'start'],
+    handler: (device, body, method) => method === 'cleanUp' ? device.cleanUp(Number(body?.protocolVersion) || 1) : device.start(),
+  },
+  dock: {
+    methods: ['returnToDock', 'dock'],
+    handler: (device, body, method) => method === 'returnToDock' ? device.returnToDock(Number(body?.protocolVersion) || 1) : device.dock(),
+  },
+  stop: {
+    methods: ['returnToDock', 'stop', 'pause'],
+    handler: (device, body, method) => method === 'returnToDock' ? device.returnToDock(Number(body?.protocolVersion) || 1) : device[method](),
+  },
+}
+
+/** Commands this module can map, for documentation and tests */
+export const supportedCommands = Object.keys(commandSpecs)
+
+/**
+ * Get the handler for a command on a node-switchbot device, or undefined when the device has no
+ * method for it. `deviceType` is kept for callers and logging; dispatch uses the device itself.
+ */
+export function getDeviceCommandHandler(deviceType: string, command: string, device?: any): DeviceCommandHandler | undefined {
+  const spec = Object.hasOwn(commandSpecs, command) ? commandSpecs[command] : undefined
+  if (!spec) {
     return undefined
   }
-  return typeMap[command]
+  const method = device ? spec.methods.find(name => typeof device[name] === 'function') : spec.methods[0]
+  if (!method) {
+    return undefined
+  }
+  return async (target: any, body: any) => spec.handler(target, body, method)
 }
