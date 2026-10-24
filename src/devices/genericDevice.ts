@@ -1507,6 +1507,31 @@ export class MeterDevice extends GenericDevice {
       })
     }
 
+    // Meters run on batteries. Same shape as the water detector's service: an
+    // unknown level reports Not Available rather than a made-up number.
+    const battery = async (): Promise<number> => {
+      const s = await this.getState()
+      const raw = s?.battery
+      if (typeof raw === 'number' && Number.isFinite(raw)) {
+        return Math.max(0, Math.min(100, raw))
+      }
+      throw new api.hap.HapStatusError(api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE)
+    }
+    services.push({
+      type: 'Battery',
+      characteristics: {
+        BatteryLevel: {
+          get: battery,
+        },
+        StatusLowBattery: {
+          get: async () => ((await battery()) < 20 ? 1 : 0),
+        },
+        ChargingState: {
+          get: async () => 2,
+        },
+      },
+    })
+
     return { services }
   }
 }
