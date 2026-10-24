@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main", "latest", "beta-*"]
   pull_request:
-    branches: ["main", "latest"]
+    branches: ["main", "latest", "beta-*"]
 
 permissions:
   contents: read
@@ -33,3 +33,6 @@ jobs:
 
       - name: Run tests
         run: npm run test
+
+      - name: Lint
+        run: npm run lint
