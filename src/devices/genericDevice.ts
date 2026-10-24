@@ -67,19 +67,10 @@ export class GenericDevice extends DeviceBase {
     if (!this.log) {
       throw new Error('Device requires a logger (Homebridge logger) in opts or cfg')
     }
-    // If BLE encryptionKey/keyId provided, set on node-switchbot device instance if possible
-    if (opts.encryptionKey && this.client && typeof this.client.devices?.get === 'function') {
-      try {
-        const dev = this.client.devices.get(opts.id)
-        if (dev && typeof dev.setKey === 'function') {
-          dev.setKey({
-            encryptionKey: opts.encryptionKey,
-            keyId: opts.keyId || undefined,
-          })
-        }
-      } catch (e) {
-        // ignore if device not found or setKey not available
-      }
+    // BLE encryption key (relay switches, locks, air purifiers, bulbs): the client applies it to the
+    // node-switchbot device when that device is discovered.
+    if (opts.encryptionKey && typeof this.client?.setDeviceKey === 'function') {
+      this.client.setDeviceKey(opts.id, { encryptionKey: opts.encryptionKey, keyId: opts.keyId || undefined })
     }
     // BLE polling config: allow override via opts.blePollingEnabled/blePollIntervalMs or cfg.blePollingEnabled/blePollIntervalMs
     this._blePollingEnabled = opts?.blePollingEnabled ?? cfg?.blePollingEnabled ?? true
