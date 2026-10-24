@@ -235,8 +235,8 @@ npm run lint      # eslint (src, test, UI html/js) then tsc --noEmit
 
 ## CI/CD Integration
 
-- `.github/workflows/ci.yml`: build and test on Node 22 and 24 for pushes to `latest`/`beta-*` and
-  PRs to `latest`. Lint is not run in CI, so run `npm run lint` locally.
+- `.github/workflows/ci.yml`: build, test and lint on Node 22 and 24 for pushes to `latest`/`beta-*`
+  and PRs to `latest`/`beta-*`.
 - `.github/workflows/release.yml`: pushes to `beta-*` publish a beta to npm; pushes to `latest`
   publish a stable release.
 
