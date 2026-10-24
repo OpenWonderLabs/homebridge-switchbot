@@ -150,6 +150,22 @@ node -p "const v=require('./package.json').version.split('.'); v[2]=parseInt(v[2
 3. Proceed with patch increment as fallback
 4. Create or target the appropriate beta branch based on version increment
 
+## Following node-switchbot Changes
+
+node-switchbot tracks [pySwitchbot](https://github.com/sblibs/pySwitchbot). After node-switchbot
+ships a change, this repo usually needs a follow-up PR so the plugin can use it:
+
+1. Read the node-switchbot PR/release and list what consumers see: new device types, renamed or
+   split model identities (`modelName`, OpenAPI `deviceType`), new status fields, new commands.
+2. Update `src/device-types.ts` (`DEVICE_TYPES`, `DEVICE_TYPE_NORMALIZATION_MAP`, including
+   lowercase product codes such as `woplugjp`), `DEVICE_CLASS_MAP` in `src/deviceFactory.ts`, and
+   accessory behaviour in `src/devices/genericDevice.ts`.
+3. Make sure no existing saved `configDeviceType` stops resolving (normalization map or
+   `src/homebridge-ui/utils/device-migration.ts`).
+4. Bump `node-switchbot` in `package.json` only to a version already published on npm.
+5. Add `createDevice` tests under `test/device/` asserting each affected type's accessory class.
+6. Run build, test and lint; commit the regenerated `config.schema.json` if `DEVICE_TYPES` changed.
+
 ## Working Effectively
 
 Node `^22 || ^24`. Run these in order; each must pass before you commit:
