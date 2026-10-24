@@ -646,6 +646,9 @@ export class CurtainDevice extends GenericDevice {
       this.getState(),
       new Promise(resolve => setTimeout(resolve, 1000)),
     ])
+    if (Date.now() < this.preferLocalPositionUntil) {
+      return this.lastKnownPosition
+    }
     if (typeof state?.position === 'number') {
       this.lastKnownPosition = this.toHomeKitPosition(Number(state.position))
       this.lastTargetPosition = this.lastKnownPosition
@@ -661,7 +664,8 @@ export class CurtainDevice extends GenericDevice {
           characteristics: {
             CurrentPosition: {
               get: async () => {
-                return this.getPositionForHomeKit()
+                void this.getPositionForHomeKit().catch(() => {})
+                return this.lastKnownPosition
               },
             },
             PositionState: {
@@ -669,17 +673,26 @@ export class CurtainDevice extends GenericDevice {
             },
             TargetPosition: {
               get: async () => {
-                await this.getPositionForHomeKit()
+                void this.getPositionForHomeKit().catch(() => {})
                 return this.lastTargetPosition
               },
               set: async (v: any) => {
                 const position = this.clampHomeKitPosition(Number(v))
                 this.lastTargetPosition = position
                 this.positionState = position > this.lastKnownPosition ? 1 : position < this.lastKnownPosition ? 0 : 2
-                await this.setState({ position: this.toSwitchBotPosition(position) })
-                this.lastKnownPosition = position
-                this.preferLocalPositionUntil = Date.now() + 30000
-                this.positionState = 2
+                try {
+                  const result = await this.setState({ position: this.toSwitchBotPosition(position) })
+                  if (result === false || result?.success === false) {
+                    throw new Error(result?.reason ?? 'Curtain position command failed')
+                  }
+                  this.lastKnownPosition = position
+                  this.preferLocalPositionUntil = Date.now() + 30000
+                } catch (error) {
+                  this.lastTargetPosition = this.lastKnownPosition
+                  throw error
+                } finally {
+                  this.positionState = 2
+                }
               },
               refreshAfterSet: ['CurrentPosition', 'TargetPosition', 'PositionState'],
             },
