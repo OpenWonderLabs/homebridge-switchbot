@@ -1134,7 +1134,27 @@ export function normalizeConfig(raw?: PlatformConfig): SwitchBotPluginConfig {
   if (!raw) {
     return {}
   }
-  return { ...(raw as any) } as SwitchBotPluginConfig
+  const cfg: any = { ...(raw as any) }
+  // v4 kept these under `credentials` and `options`. Configs carried over from v4 often still do,
+  // and nothing migrates them, so read them when the v5 key is not set.
+  const credentials = cfg.credentials && typeof cfg.credentials === 'object' ? cfg.credentials : {}
+  const options = cfg.options && typeof cfg.options === 'object' ? cfg.options : {}
+  if (!cfg.openApiToken && typeof credentials.token === 'string' && credentials.token) {
+    cfg.openApiToken = credentials.token
+  }
+  if (!cfg.openApiSecret && typeof credentials.secret === 'string' && credentials.secret) {
+    cfg.openApiSecret = credentials.secret
+  }
+  if (cfg.enableBLE === undefined && typeof options.BLE === 'boolean') {
+    cfg.enableBLE = options.BLE
+  }
+  if (cfg.openApiRefreshRate === undefined && Number(options.refreshRate) > 0) {
+    cfg.openApiRefreshRate = Number(options.refreshRate)
+  }
+  if (!Array.isArray(cfg.devices) && Array.isArray(options.devices)) {
+    cfg.devices = options.devices
+  }
+  return cfg as SwitchBotPluginConfig
 }
 
 // Create a Proxy constructor that instantiates the right platform implementation at runtime.

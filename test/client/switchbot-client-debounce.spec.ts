@@ -32,4 +32,21 @@ describe('switchBotClient debounce', () => {
     expect(doSetDeviceState).toHaveBeenCalledWith('device-1', { command: 'turnOn' })
     expect(doSetDeviceState).toHaveBeenCalledWith('device-2', { command: 'turnOff' })
   })
+
+  // HomeKit writes On and Brightness together when a light is turned on at a level. Debouncing by
+  // device alone kept only the last body, so turnOn was dropped while both callers saw success.
+  it('keeps different operations on the same device', async () => {
+    const client = new SwitchBotClient({ logger: { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} } } as any)
+    const doSetDeviceState = vi.spyOn(client as any, '_doSetDeviceState').mockResolvedValue({ status: 'success' })
+
+    await Promise.all([
+      client.setDeviceState('bulb', { command: 'turnOn' }),
+      client.setDeviceState('bulb', { command: 'setBrightness', parameter: 40 }),
+      client.setDeviceState('bulb', { command: 'setBrightness', parameter: 50 }),
+    ])
+
+    expect(doSetDeviceState).toHaveBeenCalledTimes(2)
+    expect(doSetDeviceState).toHaveBeenCalledWith('bulb', { command: 'turnOn' })
+    expect(doSetDeviceState).toHaveBeenCalledWith('bulb', { command: 'setBrightness', parameter: 50 })
+  })
 })
