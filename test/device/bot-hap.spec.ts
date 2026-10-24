@@ -89,6 +89,40 @@ describe('bot HomeKit presentation', () => {
     expect(setDeviceState.mock.calls.map(([, body]) => body.command)).toEqual(['turnOn', 'turnOff'])
   })
 
+  it('accepts botMode as an alias for mode', async () => {
+    const { device, setDeviceState } = bot({ botMode: 'press' })
+    const on = device.createHAPAccessory({}).services[0].characteristics.On
+    await on.set(true)
+    expect(await on.get()).toBe(false)
+    expect(on.refreshAfterSet).toEqual(['On'])
+    expect(setDeviceState).toHaveBeenCalledExactlyOnceWith(id, {
+      command: 'press',
+      parameter: 'default',
+      commandType: 'command',
+    })
+  })
+
+  it('prefers mode over botMode', async () => {
+    const { device, setDeviceState } = bot({ mode: 'switch', botMode: 'press' })
+    await device.createHAPAccessory({}).services[0].characteristics.On.set(true)
+    expect(setDeviceState.mock.calls.map(([, body]) => body.command)).toEqual(['turnOn'])
+  })
+
+  it('reloads a Bot when its botMode alias changes', async () => {
+    const platform = Object.create(SwitchBotHAPPlatform.prototype) as any
+    platform.config = { devices: [{ deviceId: id, configDeviceType: 'Bot' }] }
+    platform.lastConfigHash = platform.getConfigHash()
+    platform.config.devices[0].botMode = 'press'
+    platform.log = log
+    platform.accessories = new Map()
+    platform.devices = []
+    platform.loadDevices = vi.fn(async () => {})
+
+    await platform.checkAndReloadDevices()
+
+    expect(platform.loadDevices).toHaveBeenCalledOnce()
+  })
+
   it('reloads a Bot when its physical mode changes', async () => {
     const platform = Object.create(SwitchBotHAPPlatform.prototype) as any
     platform.config = { devices: [{ deviceId: id, configDeviceType: 'Bot', mode: 'switch' }] }

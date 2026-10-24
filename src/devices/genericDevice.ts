@@ -536,8 +536,10 @@ export class BotDevice extends GenericDevice {
     const config = this.cfg.devices?.find((device: any) => (device.deviceId ?? device.id) === this.opts.id)
     // Keep the old per-device type override for configurations made before v5.
     const display = config?.botDisplay ?? config?.type ?? 'switch'
-    const pressMode = config?.mode === 'press' || config?.mode === 'multipress'
-      || (display === 'door' && config?.mode !== 'switch')
+    // `botMode` is accepted as an alias for `mode` (it was proposed in #1395 before `mode` existed).
+    const mode = config?.mode || config?.botMode
+    const pressMode = mode === 'press' || mode === 'multipress'
+      || (display === 'door' && mode !== 'switch')
 
     const isOn = async () => {
       if (pressMode) {
@@ -1506,6 +1508,31 @@ export class MeterDevice extends GenericDevice {
         },
       })
     }
+
+    // Meters run on batteries. Same shape as the water detector's service: an
+    // unknown level reports Not Available rather than a made-up number.
+    const battery = async (): Promise<number> => {
+      const s = await this.getState()
+      const raw = s?.battery
+      if (typeof raw === 'number' && Number.isFinite(raw)) {
+        return Math.max(0, Math.min(100, raw))
+      }
+      throw new api.hap.HapStatusError(api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE)
+    }
+    services.push({
+      type: 'Battery',
+      characteristics: {
+        BatteryLevel: {
+          get: battery,
+        },
+        StatusLowBattery: {
+          get: async () => ((await battery()) < 20 ? 1 : 0),
+        },
+        ChargingState: {
+          get: async () => 2,
+        },
+      },
+    })
 
     return { services }
   }

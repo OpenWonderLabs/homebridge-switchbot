@@ -402,7 +402,7 @@ export class SwitchBotHAPPlatform {
       type: d.configDeviceType ?? d.type,
       name: d.configDeviceName ?? d.name,
       botDisplay: d.botDisplay ?? d.type,
-      mode: d.mode,
+      mode: d.mode || d.botMode,
     })))
   }
 

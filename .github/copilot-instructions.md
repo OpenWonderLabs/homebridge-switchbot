@@ -150,192 +150,95 @@ node -p "const v=require('./package.json').version.split('.'); v[2]=parseInt(v[2
 3. Proceed with patch increment as fallback
 4. Create or target the appropriate beta branch based on version increment
 
+## Following node-switchbot Changes
+
+node-switchbot tracks [pySwitchbot](https://github.com/sblibs/pySwitchbot). After node-switchbot
+ships a change, this repo usually needs a follow-up PR so the plugin can use it:
+
+1. Read the node-switchbot PR/release and list what consumers see: new device types, renamed or
+   split model identities (`modelName`, OpenAPI `deviceType`), new status fields, new commands.
+2. Update `src/device-types.ts` (`DEVICE_TYPES`, `DEVICE_TYPE_NORMALIZATION_MAP`, including
+   lowercase product codes such as `woplugjp`), `DEVICE_CLASS_MAP` in `src/deviceFactory.ts`, and
+   accessory behaviour in `src/devices/genericDevice.ts`.
+3. Make sure no existing saved `configDeviceType` stops resolving (normalization map or
+   `src/homebridge-ui/utils/device-migration.ts`).
+4. Bump `node-switchbot` in `package.json` only to a version already published on npm.
+5. Add `createDevice` tests under `test/device/` asserting each affected type's accessory class.
+6. Run build, test and lint; commit the regenerated `config.schema.json` if `DEVICE_TYPES` changed.
+
 ## Working Effectively
 
-### Bootstrap and Build Process
-Run these commands in sequence to set up and build the project:
+Node `^22 || ^24`. Run these in order; each must pass before you commit:
 
-1. **Install dependencies:**
-   ```bash
-   npm install --legacy-peer-deps
-   ```
-   - CRITICAL: Must use `--legacy-peer-deps` flag due to TypeDoc dependency conflicts
-   - Takes approximately 30-45 seconds
-   - This is a known workaround documented in the codebase
-
-2. **Build the project:**
-   ```bash
-   npm run build
-   ```
-   - Takes approximately 7-10 seconds
-   - Compiles TypeScript and copies UI files
-   - Output goes to `dist/` directory
-
-3. **Run tests:**
-   ```bash
-   npm run test
-   ```
-   - Takes approximately 2-3 seconds  
-   - Currently minimal test suite (1 test file)
-   - Use `npm run test:watch` for continuous testing during development
-
-4. **Generate documentation:**
-   ```bash
-   npm run docs
-   ```
-   - Takes approximately 5-10 seconds
-   - Generates TypeDoc documentation in `docs/` directory
-
-### Full Build and Validation Workflow
-Complete validation workflow (approximately 30-45 seconds total):
 ```bash
-npm install --legacy-peer-deps && npm run build && npm run test && npm run docs && npm run docs:lint && npm run docs:theme
+npm ci            # CI uses: npm ci --legacy-peer-deps
+npm run build     # syncs DEVICE_TYPES into config.schema.json, cleans dist/, tsc, copies + builds the plugin UI
+npm run test      # vitest run
+npm run lint      # eslint (src, test, UI html/js) then tsc --noEmit
 ```
-- NEVER CANCEL: Set timeout to 90+ seconds for this complete workflow
-- This validates TypeScript compilation, plugin loading, and documentation generation
 
-### Development Commands
+- `npm run lint:fix` fixes most style issues.
+- `npm run build` needs `rsync` (used by `plugin-ui`).
+- `npm run docs` / `npm run docs:lint` generate and check TypeDoc output; `prepublishOnly` runs them.
+- `npm run watch` builds, links the plugin and runs nodemon against a local Homebridge;
+  `npm run watch:ui` also starts a dev Homebridge with Config UI X.
 
-- **Watch mode for development:**
-  ```bash
-  npm run watch
-  ```
-  - Builds, links plugin locally, and starts nodemon for file watching
-  - Requires local Homebridge installation
+### Known pitfalls
 
-- **Clean build artifacts:**
-  ```bash
-  npm run clean
-  ```
-  - Removes `dist/` directory
-
-- **Check for outdated dependencies:**
-  ```bash
-  npm run check
-  ```
-  - WARNING: This will fail due to dependency conflicts - use with `--legacy-peer-deps`
-
-### Known Issues and Workarounds
-
-- **Linting fails:** `npm run lint` and `npm run lint:fix` currently fail due to ESLint configuration conflicts with import/extensions rule. Document any code style issues manually.
-
-- **Dependency conflicts:** Always use `--legacy-peer-deps` flag for npm install due to TypeDoc theme dependency version mismatches.
-
-- **Coverage and docs artifacts:** Add `coverage/` and `docs/` to `.gitignore` to prevent committing build artifacts.
-
-## Validation Scenarios
-
-### Manual Plugin Validation
-After making changes, ALWAYS run these validation steps:
-
-1. **Verify plugin builds and loads:**
-   ```bash
-   npm run build && node -e "
-   try {
-     const plugin = require('./dist/index.js');
-     console.log('Plugin loads successfully');
-     console.log('Plugin type:', typeof plugin.default);
-   } catch (e) {
-     console.error('Plugin load failed:', e.message);
-   }"
-   ```
-
-2. **Test plugin registration:**
-   - Plugin exports a default function that registers with Homebridge
-   - Uses `PLUGIN_NAME = '@switchbot/homebridge-switchbot'` and `PLATFORM_NAME = 'SwitchBot'`
-   - Main platform class is `SwitchBotPlatform`
-
-3. **Validate TypeScript compilation:**
-   - Must have no TypeScript errors
-   - Check `dist/` directory contains all expected `.js`, `.d.ts`, and `.map` files
-
-4. **Test documentation generation:**
-   ```bash
-   npm run docs:lint
-   ```
-   - Must pass without warnings when using `--treatWarningsAsErrors`
-
-### Code Coverage Validation
-Run comprehensive test coverage analysis:
-```bash
-npm run test-coverage
-```
-- Current coverage is minimal (~1.36% overall)
-- Coverage reports generated in `coverage/` directory
+- **Never commit compiled output under `src/`.** `.gitignore` excludes `src/**/*.js` and
+  `src/**/*.js.map`. Vitest resolves `./foo.js` imports to a real `src/foo.js` before `src/foo.ts`,
+  so a stale compiled copy silently replaces the source in tests.
+- **`config.schema.json` is generated** from `DEVICE_TYPES` in `src/device-types.ts` during
+  `npm run build`. When `DEVICE_TYPES` changes, commit the regenerated schema in the same change.
+- **`DEVICE_CLASS_MAP` keys in `src/deviceFactory.ts` are lowercase.** Unmapped types fall back to
+  `GenericDevice`, so add a test for every new type.
 
 ## Codebase Navigation
 
 ### Project Structure
 ```
-├── src/                     # Source TypeScript files
-│   ├── device/             # Device implementations (21 files)
-│   │   ├── device.ts       # Base device class (deviceBase)
-│   │   ├── bot.ts          # SwitchBot Bot device
-│   │   ├── curtain.ts      # SwitchBot Curtain device
-│   │   └── ...             # Other device implementations
-│   ├── irdevice/           # IR device implementations (10 files)
-│   │   ├── irdevice.ts     # Base IR device class
-│   │   ├── tv.ts           # TV IR control
-│   │   └── ...             # Other IR device implementations
-│   ├── homebridge-ui/      # Plugin configuration UI
-│   │   ├── server.ts       # UI backend server
-│   │   └── public/         # UI frontend files
-│   ├── platform.ts         # Main platform class (SwitchBotPlatform)
-│   ├── settings.ts         # Configuration interfaces and constants
-│   ├── utils.ts            # Utility functions
-│   └── index.ts            # Plugin entry point
-├── config.schema.json      # Homebridge configuration schema
-├── dist/                   # Compiled JavaScript output
-├── docs/                   # Generated TypeDoc documentation  
-└── coverage/               # Test coverage reports
+├── src/
+│   ├── index.ts                    # Plugin entry point (registers one platform that proxies HAP or Matter)
+│   ├── SwitchBotHAPPlatform.ts     # HomeKit (HAP) platform
+│   ├── SwitchBotMatterPlatform.ts  # Matter platform
+│   ├── switchbotClient.ts          # Wrapper around node-switchbot (BLE + OpenAPI)
+│   ├── deviceFactory.ts            # Device type -> accessory class (DEVICE_CLASS_MAP, createDevice)
+│   ├── device-types.ts             # DEVICE_TYPES (valid types) + DEVICE_TYPE_NORMALIZATION_MAP (aliases)
+│   ├── deviceCommandMapper.ts      # Per-type command handlers
+│   ├── devices/
+│   │   ├── deviceBase.ts           # Base accessory class
+│   │   └── genericDevice.ts        # GenericDevice and every concrete accessory class
+│   ├── homebridge-ui/              # Config UI X custom UI (server, endpoints, utils, public/)
+│   ├── settings.ts                 # Config interfaces and constants
+│   ├── errors.ts
+│   └── utils.ts
+├── test/                           # Vitest specs (client, device, platform, homebridge-ui, utils, e2e)
+├── scripts/                        # sync-device-types, build-ui, free-dev-ports
+├── config.schema.json              # Homebridge config schema (configDeviceType enum is generated)
+└── dist/                           # Build output (not committed)
 ```
-
-### Key Development Areas
-
-- **Adding new devices:** Extend `src/device/device.ts` base class, implement in new file under `src/device/`
-- **Adding IR devices:** Extend `src/irdevice/irdevice.ts` base class, implement in new file under `src/irdevice/`
-- **Configuration changes:** Update `src/settings.ts` and `config.schema.json`
-- **Platform modifications:** Edit `src/platform.ts` (main class with 2800+ lines)
-- **Utility functions:** Modify `src/utils.ts` for shared functionality
-
-### Device Connection Types
-This plugin supports two connection methods to SwitchBot devices:
-1. **OpenAPI Connection:** Requires SwitchBot Cloud API token/secret, works through SwitchBot Hub
-2. **BLE (Bluetooth Low Energy):** Direct device connection, requires device MAC addresses
 
 ### Common Development Tasks
 
-- **Testing device implementations:** Focus on `src/device/` and `src/irdevice/` directories
-- **Configuration UI changes:** Modify `src/homebridge-ui/` files and rebuild with `npm run plugin-ui`
-- **Platform logic changes:** Edit `src/platform.ts` - the main orchestration file
-- **Adding device support:** Create new device class extending `deviceBase` or IR device class
+- **New device type or identity from node-switchbot:** add it to `DEVICE_TYPES` and/or
+  `DEVICE_TYPE_NORMALIZATION_MAP` in `src/device-types.ts`, map it in `DEVICE_CLASS_MAP` in
+  `src/deviceFactory.ts`, then add a `createDevice` test under `test/device/`.
+- **New accessory behaviour:** add or extend a class in `src/devices/genericDevice.ts`.
+- **Saved configs that would stop resolving:** handle them in the normalization map or
+  `src/homebridge-ui/utils/device-migration.ts`.
+- **Config UI changes:** edit `src/homebridge-ui/`, then `npm run build`.
+- **node-switchbot upgrades:** bump the dependency only to a version already published on npm.
 
-### Important File Relationships
-- Always update both device implementation AND platform.ts when adding new device types
-- Configuration schema changes require updates to settings.ts interfaces
-- Device MAC address validation is handled in utils.ts (`formatDeviceIdAsMac`)
-- BLE connection handling is in the base device classes
-
-## Build Time Expectations
-
-- **npm install --legacy-peer-deps:** 30-45 seconds
-- **npm run build:** 7-10 seconds  
-- **npm run test:** 2-3 seconds
-- **npm run docs:** 5-10 seconds
-- **Complete validation workflow:** 30-45 seconds total
-- **NEVER CANCEL:** Always wait for builds to complete, set timeouts to 90+ seconds for safety
+### Device Connection Types
+1. **OpenAPI:** SwitchBot Cloud token/secret; works through a SwitchBot Hub.
+2. **BLE:** direct Bluetooth connection via node-switchbot (Linux/macOS).
 
 ## CI/CD Integration
 
-The project uses GitHub Actions for CI:
-- **Build workflow:** `.github/workflows/build.yml` runs Node.js build and test, then ESLint
-- **Required checks:** Build must pass, tests must pass
-- **Known CI issue:** ESLint currently fails due to configuration conflicts
-
-Always run the complete validation workflow locally before committing:
-```bash
-npm run build && npm run test && npm run docs:lint
-```
+- `.github/workflows/ci.yml`: build, test and lint on Node 22 and 24 for pushes to `latest`/`beta-*`
+  and PRs to `latest`/`beta-*`.
+- `.github/workflows/release.yml`: pushes to `beta-*` publish a beta to npm; pushes to `latest`
+  publish a stable release.
 
 ## Complete Workflow Examples
 

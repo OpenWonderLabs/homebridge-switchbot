@@ -30,11 +30,11 @@ const READING = { temperature: 22.7, humidity: 55, co2: 483 }
 
 describe('meterDevice CO2 service', () => {
   it.each(['MeterPro(CO2)', 'Meter Pro (CO2)'])('is added for %s', (deviceType) => {
-    expect(serviceTypes(meter(deviceType, READING))).toEqual(['TemperatureSensor', 'HumiditySensor', 'CarbonDioxideSensor'])
+    expect(serviceTypes(meter(deviceType, READING))).toEqual(['TemperatureSensor', 'HumiditySensor', 'CarbonDioxideSensor', 'Battery'])
   })
 
   it.each(['Meter', 'Meter Plus', 'MeterPro', 'Outdoor Meter', undefined])('is not added for %s', (deviceType) => {
-    expect(serviceTypes(meter(deviceType, READING))).toEqual(['TemperatureSensor', 'HumiditySensor'])
+    expect(serviceTypes(meter(deviceType, READING))).toEqual(['TemperatureSensor', 'HumiditySensor', 'Battery'])
   })
 
   it('reports the CO2 level in ppm', async () => {
