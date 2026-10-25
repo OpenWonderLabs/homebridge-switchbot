@@ -37,6 +37,8 @@ export class SwitchBotMatterPlatform {
   devices: any[] = []
   /** Map of accessory UUID to accessory object */
   accessories: Map<string, any>
+  /** UUIDs this process has registered with Homebridge's Matter server */
+  private readonly registeredMatterUUIDs = new Set<string>()
   /** Hash of last loaded config for change detection */
   private lastConfigHash: string = ''
   /** Interval for periodic config reload */
@@ -125,7 +127,7 @@ export class SwitchBotMatterPlatform {
         _raw: raw,
       }
       const type: string = normalizeTypeForMatter(d.type)
-      const deviceOpts: any = { id: d.id, type, name: d.name, encryptionKey: d.encryptionKey, keyId: d.keyId, log: this.log }
+      const deviceOpts: any = { id: d.id, type, deviceType: d.type, name: d.name, encryptionKey: d.encryptionKey, keyId: d.keyId, log: this.log }
       this.log.debug(`[Matter/Debug] Device options for ${d.name ?? d.id}:`, JSON.stringify(deviceOpts, null, 2))
       const matterSupported = !!DEVICE_MATTER_SUPPORTED[(type || '').toLowerCase()]
       const matterAvailable = !!(this.api?.isMatterAvailable?.() && this.api?.isMatterEnabled?.())
@@ -268,16 +270,32 @@ export class SwitchBotMatterPlatform {
         this.log.warn(`Matter accessory creation failed for ${d.id} (${type})`, e)
       }
     }
-    if (accessoriesToRegister.length > 0) {
-      try {
-        await matterApi.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, accessoriesToRegister)
-        this.log.info(`Registered ${accessoriesToRegister.length} Matter accessory(ies) with Homebridge`)
-      } catch (e) {
-        this.log.warn('Failed to register Matter accessories', e)
-      }
-    } else {
+    if (accessoriesToRegister.length === 0) {
       this.log.info('No Matter accessories to register')
+      return
     }
+    // Register each accessory on its own so one failure does not drop the rest. Accessories already
+    // registered by this process (a config reload) are updated instead: Homebridge throws
+    // "already registered" when registering them again. Cache-restored accessories are registered
+    // so Homebridge attaches their handlers.
+    let registered = 0
+    for (const accessory of accessoriesToRegister) {
+      const uuid = accessory.UUID || accessory.uuid
+      try {
+        if (this.registeredMatterUUIDs.has(uuid)) {
+          if (typeof matterApi.updatePlatformAccessories === 'function') {
+            await matterApi.updatePlatformAccessories([accessory])
+          }
+        } else {
+          await matterApi.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory])
+          this.registeredMatterUUIDs.add(uuid)
+          registered++
+        }
+      } catch (e) {
+        this.log.warn(`Failed to register Matter accessory ${accessory.displayName || uuid}`, e)
+      }
+    }
+    this.log.info(`Registered ${registered} Matter accessory(ies) with Homebridge`)
   }
 
   /**
@@ -339,10 +357,11 @@ export class SwitchBotMatterPlatform {
       // Unregister removed accessories from Homebridge (Matter API)
       if (accessoriesToRemove.length > 0 && this.api && (this.api as any).matter && (this.api as any).matter.unregisterPlatformAccessories) {
         try {
-          (this.api as any).matter.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, accessoriesToRemove.map(a => a.accessory))
+          await (this.api as any).matter.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, accessoriesToRemove.map(a => a.accessory))
           this.log.info(`Unregistered ${accessoriesToRemove.length} Matter accessory(ies) removed from config`)
           for (const { uuid } of accessoriesToRemove) {
             this.accessories.delete(uuid)
+            this.registeredMatterUUIDs.delete(uuid)
           }
         } catch (e) {
           this.log.warn('Failed to unregister removed Matter accessories', e)
