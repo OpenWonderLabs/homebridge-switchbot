@@ -149,7 +149,7 @@ export async function importDiscoveredDevice(device: any): Promise<ImportDiscove
     ['auto', 'ble', 'openapi'].forEach((val) => {
       const opt = document.createElement('option')
       opt.value = val
-      opt.text = val.charAt(0).toUpperCase() + val.slice(1)
+      opt.text = val === 'ble' ? 'BLE' : val === 'openapi' ? 'OpenAPI' : 'Auto'
       opt.selected = (device.connectionPreference || 'auto') === val
       connectionPrefSelect.appendChild(opt)
     })
@@ -568,7 +568,7 @@ export async function editDevice(device: any): Promise<void> {
   ;['auto', 'ble', 'openapi'].forEach((val) => {
     const opt = document.createElement('option')
     opt.value = val
-    opt.text = val.charAt(0).toUpperCase() + val.slice(1)
+    opt.text = val === 'ble' ? 'BLE' : val === 'openapi' ? 'OpenAPI' : 'Auto'
     opt.selected = (device.connectionPreference || 'auto') === val
     connectionPrefSelect.appendChild(opt)
   })

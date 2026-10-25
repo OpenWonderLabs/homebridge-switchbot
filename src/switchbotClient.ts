@@ -109,6 +109,10 @@ export class SwitchBotClient implements ISwitchBotClient {
     throw new SwitchbotOperationError('No SwitchBot client available', 'no_client')
   }
 
+  getCachedDevice(id: string): any {
+    return this.getManagedDevice(id)
+  }
+
   async getDevices(): Promise<any[]> {
     if (this.client) {
       try {
