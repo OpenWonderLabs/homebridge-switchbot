@@ -7,6 +7,7 @@ export interface SwitchBotPluginConfig {
   preferMatter?: boolean
   enableMatter?: boolean
   enableBLE?: boolean // Enable or disable BLE support
+  nodeSwitchBotLogLevel?: 0 | 1 | 2 | 3 | 4
   // other plugin-specific configuration
   [key: string]: any
 }
