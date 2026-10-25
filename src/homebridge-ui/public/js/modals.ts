@@ -496,7 +496,7 @@ export async function editDevice(device: any): Promise<void> {
 
   const nameInput = document.createElement('input')
   nameInput.type = 'text'
-  nameInput.value = device.name || device.id
+  nameInput.value = device.configDeviceName || device.name || ''
   nameInput.style.width = '100%'
   nameInput.style.marginBottom = '12px'
   nameInput.style.padding = '8px 10px'
@@ -670,7 +670,7 @@ export async function editDevice(device: any): Promise<void> {
       const { renderDeviceList } = await import('./render.js')
 
       const params = {
-        deviceId: device.id,
+        deviceId: device.deviceId,
         configDeviceName: nameInput.value || undefined,
         configDeviceType: typeSelect.value,
         connectionPreference: connectionPrefSelect.value,
