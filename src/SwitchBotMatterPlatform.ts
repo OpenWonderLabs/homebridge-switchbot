@@ -126,7 +126,7 @@ export class SwitchBotMatterPlatform {
       }
       const type: string = normalizeTypeForMatter(d.type)
       const deviceOpts: any = { id: d.id, type, name: d.name, encryptionKey: d.encryptionKey, keyId: d.keyId, log: this.log }
-      this.log.debug(`[Matter/Debug] Device options for ${d.name ?? d.id}:`, JSON.stringify(deviceOpts, null, 2))
+      this.log.debug(`[Matter] Device options for ${d.name ?? d.id}:`, JSON.stringify(deviceOpts, null, 2))
       const matterSupported = !!DEVICE_MATTER_SUPPORTED[(type || '').toLowerCase()]
       const matterAvailable = !!(this.api?.isMatterAvailable?.() && this.api?.isMatterEnabled?.())
       const matterEnabled = matterAvailable || !!this.config.enableMatter
