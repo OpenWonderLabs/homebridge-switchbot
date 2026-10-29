@@ -5,13 +5,30 @@ import { BotDevice } from '../../src/devices/genericDevice.js'
 import { SwitchBotHAPPlatform } from '../../src/SwitchBotHAPPlatform.js'
 
 const id = 'bot-door-test'
-const log = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
+const log = {
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
+}
 
 function bot(config: Record<string, unknown>, result: unknown = { success: true }) {
   const setDeviceState = vi.fn(async () => result)
   const device = new BotDevice(
-    { id, type: 'Bot', name: 'Entrance', log, blePollingEnabled: false },
-    { log, devices: [{ deviceId: id, configDeviceType: 'Bot', ...config }], _client: { setDeviceState } } as any,
+    {
+      id,
+      type: 'Bot',
+      name: 'Entrance',
+      log,
+      blePollingEnabled: false,
+    },
+    {
+      log,
+      devices: [
+        { deviceId: id, configDeviceType: 'Bot', ...config },
+      ],
+      _client: { setDeviceState },
+    } as any,
   )
   return { device, setDeviceState }
 }
@@ -19,14 +36,50 @@ function bot(config: Record<string, unknown>, result: unknown = { success: true 
 const displays = [
   ['switch', 'Switch', 'On', true, false],
   ['outlet', 'Outlet', 'On', true, false],
-  ['door', 'Door', 'TargetPosition', 100, 0],
-  ['window', 'Window', 'TargetPosition', 100, 0],
-  ['windowcovering', 'WindowCovering', 'TargetPosition', 100, 0],
-  ['garagedoor', 'GarageDoorOpener', 'TargetDoorState', 0, 1],
-  ['lock', 'LockMechanism', 'LockTargetState', 0, 1],
+  [
+    'door',
+    'Door',
+    'TargetPosition',
+    100,
+    0,
+  ],
+  [
+    'window',
+    'Window',
+    'TargetPosition',
+    100,
+    0,
+  ],
+  [
+    'windowcovering',
+    'WindowCovering',
+    'TargetPosition',
+    100,
+    0,
+  ],
+  [
+    'garagedoor',
+    'GarageDoorOpener',
+    'TargetDoorState',
+    0,
+    1,
+  ],
+  [
+    'lock',
+    'LockMechanism',
+    'LockTargetState',
+    0,
+    1,
+  ],
   ['faucet', 'Faucet', 'Active', 1, 0],
   ['fan', 'Fanv2', 'Active', 1, 0],
-  ['stateful', 'StatefulProgrammableSwitch', 'ProgrammableSwitchOutputState', 1, 0],
+  [
+    'stateful',
+    'StatefulProgrammableSwitch',
+    'ProgrammableSwitchOutputState',
+    1,
+    0,
+  ],
 ] as const
 
 describe('bot HomeKit presentation', () => {
@@ -58,15 +111,32 @@ describe('bot HomeKit presentation', () => {
     const { device } = bot({ botDisplay: display, mode: 'press' })
     const accessory = new Accessory('Entrance', uuid.generate(id))
     accessory.addService(Service.Switch)
-    const api = { hap: { Service, Characteristic, uuid }, registerPlatformAccessories: vi.fn() }
+    const api = {
+      hap: { Service, Characteristic, uuid },
+      registerPlatformAccessories: vi.fn(),
+    }
     const platform = Object.create(SwitchBotHAPPlatform.prototype) as any
     platform.api = api
     platform.log = log
-    platform.accessories = new Map([[uuid.generate(id), accessory]])
+    platform.accessories = new Map([
+      [
+        uuid.generate(id),
+        accessory,
+      ],
+    ])
     platform.hapPushTargets = new Map()
-    const created = { instance: device, createAccessory: () => device.createHAPAccessory(api) }
+    const created = {
+      instance: device,
+      createAccessory: () => device.createHAPAccessory(api),
+    }
 
-    await platform.registerHAPAccessories([{ created, d: { id, name: 'Entrance' }, type: 'Bot' }])
+    await platform.registerHAPAccessories([
+      {
+        created,
+        d: { id, name: 'Entrance' },
+        type: 'Bot',
+      },
+    ])
 
     const service = accessory.getService((Service as any)[serviceType])!
     expect(service).toBeDefined()
@@ -110,7 +180,11 @@ describe('bot HomeKit presentation', () => {
 
   it('reloads a Bot when its botMode alias changes', async () => {
     const platform = Object.create(SwitchBotHAPPlatform.prototype) as any
-    platform.config = { devices: [{ deviceId: id, configDeviceType: 'Bot' }] }
+    platform.config = {
+      devices: [
+        { deviceId: id, configDeviceType: 'Bot' },
+      ],
+    }
     platform.lastConfigHash = platform.getConfigHash()
     platform.config.devices[0].botMode = 'press'
     platform.log = log
@@ -125,7 +199,11 @@ describe('bot HomeKit presentation', () => {
 
   it('reloads a Bot when its physical mode changes', async () => {
     const platform = Object.create(SwitchBotHAPPlatform.prototype) as any
-    platform.config = { devices: [{ deviceId: id, configDeviceType: 'Bot', mode: 'switch' }] }
+    platform.config = {
+      devices: [
+        { deviceId: id, configDeviceType: 'Bot', mode: 'switch' },
+      ],
+    }
     platform.lastConfigHash = platform.getConfigHash()
     platform.config.devices[0].mode = 'press'
     platform.log = log
@@ -141,14 +219,31 @@ describe('bot HomeKit presentation', () => {
   it('emits each Stateful Programmable Switch press as an event', async () => {
     const { device, setDeviceState } = bot({ botDisplay: 'stateful', mode: 'press' })
     const accessory = new Accessory('Entrance', uuid.generate(id))
-    const api = { hap: { Service, Characteristic, uuid }, registerPlatformAccessories: vi.fn() }
+    const api = {
+      hap: { Service, Characteristic, uuid },
+      registerPlatformAccessories: vi.fn(),
+    }
     const platform = Object.create(SwitchBotHAPPlatform.prototype) as any
     platform.api = api
     platform.log = log
-    platform.accessories = new Map([[uuid.generate(id), accessory]])
+    platform.accessories = new Map([
+      [
+        uuid.generate(id),
+        accessory,
+      ],
+    ])
     platform.hapPushTargets = new Map()
-    const created = { instance: device, createAccessory: () => device.createHAPAccessory(api) }
-    await platform.registerHAPAccessories([{ created, d: { id, name: 'Entrance' }, type: 'Bot' }])
+    const created = {
+      instance: device,
+      createAccessory: () => device.createHAPAccessory(api),
+    }
+    await platform.registerHAPAccessories([
+      {
+        created,
+        d: { id, name: 'Entrance' },
+        type: 'Bot',
+      },
+    ])
 
     const service = accessory.getService(Service.StatefulProgrammableSwitch)!
     const event = service.getCharacteristic(Characteristic.ProgrammableSwitchEvent)
@@ -199,11 +294,25 @@ describe('bot HomeKit presentation', () => {
     const platform = Object.create(SwitchBotHAPPlatform.prototype) as any
     platform.api = api
     platform.log = log
-    platform.accessories = new Map([[uuid.generate(id), accessory]])
+    platform.accessories = new Map([
+      [
+        uuid.generate(id),
+        accessory,
+      ],
+    ])
     platform.hapPushTargets = new Map()
-    const created = { instance: device, createAccessory: () => device.createHAPAccessory(api) }
+    const created = {
+      instance: device,
+      createAccessory: () => device.createHAPAccessory(api),
+    }
 
-    await platform.registerHAPAccessories([{ created, d: { id, name: 'Entrance' }, type: 'Bot' }])
+    await platform.registerHAPAccessories([
+      {
+        created,
+        d: { id, name: 'Entrance' },
+        type: 'Bot',
+      },
+    ])
 
     expect(accessory.getService(Service.Switch)).toBeUndefined()
     const door = accessory.getService(Service.Door)!

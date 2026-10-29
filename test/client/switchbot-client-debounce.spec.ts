@@ -4,7 +4,14 @@ import { SwitchBotClient } from '../../src/switchbotClient'
 
 describe('switchBotClient debounce', () => {
   it('should debounce rapid setDeviceState calls to the same device', async () => {
-    const client = new SwitchBotClient({ logger: { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} } } as any)
+    const client = new SwitchBotClient({
+      logger: {
+        info: () => {},
+        warn: () => {},
+        error: () => {},
+        debug: () => {},
+      },
+    } as any)
     const doSetDeviceState = vi.spyOn(client as any, '_doSetDeviceState').mockResolvedValue({ status: 'success' })
 
     // Simulate rapid calls
@@ -20,7 +27,14 @@ describe('switchBotClient debounce', () => {
   })
 
   it('should not debounce setDeviceState calls to different devices', async () => {
-    const client = new SwitchBotClient({ logger: { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} } } as any)
+    const client = new SwitchBotClient({
+      logger: {
+        info: () => {},
+        warn: () => {},
+        error: () => {},
+        debug: () => {},
+      },
+    } as any)
     const doSetDeviceState = vi.spyOn(client as any, '_doSetDeviceState').mockResolvedValue({ status: 'success' })
 
     await Promise.all([
@@ -36,7 +50,14 @@ describe('switchBotClient debounce', () => {
   // HomeKit writes On and Brightness together when a light is turned on at a level. Debouncing by
   // device alone kept only the last body, so turnOn was dropped while both callers saw success.
   it('keeps different operations on the same device', async () => {
-    const client = new SwitchBotClient({ logger: { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} } } as any)
+    const client = new SwitchBotClient({
+      logger: {
+        info: () => {},
+        warn: () => {},
+        error: () => {},
+        debug: () => {},
+      },
+    } as any)
     const doSetDeviceState = vi.spyOn(client as any, '_doSetDeviceState').mockResolvedValue({ status: 'success' })
 
     await Promise.all([

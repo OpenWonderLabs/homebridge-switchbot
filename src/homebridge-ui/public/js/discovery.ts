@@ -56,7 +56,9 @@ function mergeDiscoveredDevices(existingDevices: any[], incomingDevices: any[]):
     }
   }
 
-  const merged = [...deviceMap.values()]
+  const merged = [
+    ...deviceMap.values(),
+  ]
   // Log merged device structure for debugging
   if (merged.length > 0) {
     console.warn('[SwitchBot][Discovery][mergeDiscoveredDevices] Merged device sample:', merged[0])
@@ -92,7 +94,10 @@ interface DiscoveryCachePayload {
 
 function setDiscoveryCache(devices: any[]): void {
   try {
-    const payload: DiscoveryCachePayload = { timestamp: Date.now(), devices }
+    const payload: DiscoveryCachePayload = {
+      timestamp: Date.now(),
+      devices,
+    }
     localStorage.setItem(DISCOVERY_CACHE_KEY, JSON.stringify(payload))
   } catch (_e) {
     // Ignore storage errors
@@ -131,7 +136,9 @@ function getDiscoveryAutoRefreshSeconds(): number {
   try {
     const stored = localStorage.getItem(DISCOVERY_AUTO_REFRESH_KEY)
     const value = Number(stored || 0)
-    return Number.isFinite(value) && value >= 0 ? value : 0
+    return Number.isFinite(value) && value >= 0
+      ? value
+      : 0
   } catch (_e) {
     return 0
   }
@@ -367,7 +374,9 @@ function getDiscoveryGroupExpandedState(): Record<string, boolean> {
       return {}
     }
     const parsed = JSON.parse(stored)
-    return typeof parsed === 'object' && parsed ? parsed : {}
+    return typeof parsed === 'object' && parsed
+      ? parsed
+      : {}
   } catch (_e) {
     return {}
   }
@@ -418,7 +427,18 @@ export async function discoverDevices(): Promise<void> {
     return
   }
 
-  const spinnerFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+  const spinnerFrames = [
+    '⠋',
+    '⠙',
+    '⠹',
+    '⠸',
+    '⠼',
+    '⠴',
+    '⠦',
+    '⠧',
+    '⠇',
+    '⠏',
+  ]
   let spinnerIndex = 0
   const startedAt = Date.now()
   let phaseStartedAt = startedAt
@@ -486,7 +506,9 @@ export async function discoverDevices(): Promise<void> {
       throw new TypeError('homebridge.getPluginConfig is not available')
     }
     const configArr = await homebridge.getPluginConfig()
-    const platformIdx = Array.isArray(configArr) ? configArr.findIndex(c => (c.platform || c.name || '').toLowerCase().includes('switchbot')) : -1
+    const platformIdx = Array.isArray(configArr)
+      ? configArr.findIndex(c => (c.platform || c.name || '').toLowerCase().includes('switchbot'))
+      : -1
     if (platformIdx === -1) {
       throw new Error('SwitchBot platform config not found')
     }
@@ -594,9 +616,15 @@ export async function discoverDevices(): Promise<void> {
       filterBtn.style.fontSize = '11px'
       filterBtn.style.borderRadius = '3px'
       filterBtn.style.cursor = 'pointer'
-      filterBtn.style.border = preferences.connectionType === option.value ? '2px solid #007AFF' : '1px solid #ccc'
-      filterBtn.style.backgroundColor = preferences.connectionType === option.value ? '#f0f7ff' : '#fff'
-      filterBtn.style.color = preferences.connectionType === option.value ? '#1d4ed8' : '#374151'
+      filterBtn.style.border = preferences.connectionType === option.value
+        ? '2px solid #007AFF'
+        : '1px solid #ccc'
+      filterBtn.style.backgroundColor = preferences.connectionType === option.value
+        ? '#f0f7ff'
+        : '#fff'
+      filterBtn.style.color = preferences.connectionType === option.value
+        ? '#1d4ed8'
+        : '#374151'
 
       filterBtn.onclick = () => {
         preferences.connectionType = option.value
@@ -786,7 +814,9 @@ export async function discoverDevices(): Promise<void> {
         }
         const addedCount = bulkResult?.addedCount ?? bulkResult?.data?.addedCount ?? 0
         const skippedCount = bulkResult?.skippedCount ?? bulkResult?.data?.skippedCount ?? 0
-        toastSuccess(`Added ${addedCount} device(s)${skippedCount > 0 ? ` (${skippedCount} skipped)` : ''}`)
+        toastSuccess(`Added ${addedCount} device(s)${skippedCount > 0
+          ? ` (${skippedCount} skipped)`
+          : ''}`)
         await loadConfiguredDevices()
         selectedIds.clear()
         addSelectedBtn.disabled = true
@@ -794,7 +824,9 @@ export async function discoverDevices(): Promise<void> {
         await updateDiscoveryView(discoveredDevices, preferences, groupBy, hideAdded, selectedIds)
       } catch (e) {
         uiLog.error('Batch add error:', e)
-        toastError(e instanceof Error ? e.message : 'Failed to add devices')
+        toastError(e instanceof Error
+          ? e.message
+          : 'Failed to add devices')
         addSelectedBtn.disabled = false
         addSelectedBtn.textContent = 'Add Selected'
       } finally {
@@ -823,7 +855,9 @@ export async function discoverDevices(): Promise<void> {
         await updateDiscoveryView(discoveredDevices, preferences, groupBy, hideAdded, selectedIds)
       } catch (e) {
         uiLog.error('Batch enable error:', e)
-        toastError(e instanceof Error ? e.message : 'Failed to enable devices')
+        toastError(e instanceof Error
+          ? e.message
+          : 'Failed to enable devices')
         enableSelectedBtn.disabled = false
         enableSelectedBtn.textContent = 'Enable Selected'
       } finally {
@@ -852,7 +886,9 @@ export async function discoverDevices(): Promise<void> {
         await updateDiscoveryView(discoveredDevices, preferences, groupBy, hideAdded, selectedIds)
       } catch (e) {
         uiLog.error('Batch disable error:', e)
-        toastError(e instanceof Error ? e.message : 'Failed to disable devices')
+        toastError(e instanceof Error
+          ? e.message
+          : 'Failed to disable devices')
         disableSelectedBtn.disabled = false
         disableSelectedBtn.textContent = 'Disable Selected'
       } finally {
@@ -1027,9 +1063,13 @@ export async function discoverDevices(): Promise<void> {
           = bulkResult?.skippedCount
             ?? bulkResult?.data?.skippedCount
             ?? 0
-        status.textContent = `✓ Added ${addedCount} device(s)${skippedCount > 0 ? ` (${skippedCount} skipped)` : ''}`
+        status.textContent = `✓ Added ${addedCount} device(s)${skippedCount > 0
+          ? ` (${skippedCount} skipped)`
+          : ''}`
         if (addedCount > 0) {
-          toastSuccess(`Added ${addedCount} device(s)${skippedCount > 0 ? ` (${skippedCount} skipped)` : ''}`)
+          toastSuccess(`Added ${addedCount} device(s)${skippedCount > 0
+            ? ` (${skippedCount} skipped)`
+            : ''}`)
         } else if (skippedCount > 0) {
           toastWarning(`No new devices were added (${skippedCount} skipped)`)
         }
@@ -1052,9 +1092,13 @@ export async function discoverDevices(): Promise<void> {
         }
       } catch (e) {
         uiLog.error('Bulk add error:', e)
-        status.textContent = `✗ Error: ${e instanceof Error ? e.message : 'Failed to add devices'}`
+        status.textContent = `✗ Error: ${e instanceof Error
+          ? e.message
+          : 'Failed to add devices'}`
         status.classList.add('error')
-        toastError(e instanceof Error ? e.message : 'Failed to add devices')
+        toastError(e instanceof Error
+          ? e.message
+          : 'Failed to add devices')
       }
 
       // Refresh the configured devices list
@@ -1068,9 +1112,13 @@ export async function discoverDevices(): Promise<void> {
     updateLastScannedStatus()
   } catch (e) {
     uiLog.error('Discovery error:', e)
-    status.textContent = `Error: ${e instanceof Error ? e.message : 'Discovery failed'}`
+    status.textContent = `Error: ${e instanceof Error
+      ? e.message
+      : 'Discovery failed'}`
     status.classList.add('error')
-    toastError(e instanceof Error ? e.message : 'Discovery failed')
+    toastError(e instanceof Error
+      ? e.message
+      : 'Discovery failed')
     list.style.display = 'none'
   } finally {
     clearInterval(progressTimer)
@@ -1144,7 +1192,9 @@ async function updateDiscoveryView(
 
   const getHubGroup = (device: any): string => {
     const hub = String(device?.hubDeviceId || '').trim()
-    return hub ? `Hub ${hub}` : 'No Hub'
+    return hub
+      ? `Hub ${hub}`
+      : 'No Hub'
   }
 
   const getTypeGroup = (device: any): string => {
@@ -1168,13 +1218,27 @@ async function updateDiscoveryView(
 
   let orderedGroups: string[] = []
   if (groupBy === 'hub') {
-    const hubGroups = [...groupedDevices.keys()].filter(group => group !== 'No Hub').sort((a, b) => a.localeCompare(b))
-    orderedGroups = groupedDevices.has('No Hub') ? [...hubGroups, 'No Hub'] : hubGroups
+    const hubGroups = [
+      ...groupedDevices.keys(),
+    ].filter(group => group !== 'No Hub').sort((a, b) => a.localeCompare(b))
+    orderedGroups = groupedDevices.has('No Hub')
+      ? [...hubGroups, 'No Hub']
+      : hubGroups
   } else if (groupBy === 'type') {
-    const typeGroups = [...groupedDevices.keys()].filter(group => group !== 'Unknown Type').sort((a, b) => a.localeCompare(b))
-    orderedGroups = groupedDevices.has('Unknown Type') ? [...typeGroups, 'Unknown Type'] : typeGroups
+    const typeGroups = [
+      ...groupedDevices.keys(),
+    ].filter(group => group !== 'Unknown Type').sort((a, b) => a.localeCompare(b))
+    orderedGroups = groupedDevices.has('Unknown Type')
+      ? [...typeGroups, 'Unknown Type']
+      : typeGroups
   } else {
-    const groupOrder = ['Both', 'BLE', 'OpenAPI', 'IR', 'Unknown']
+    const groupOrder = [
+      'Both',
+      'BLE',
+      'OpenAPI',
+      'IR',
+      'Unknown',
+    ]
     orderedGroups = groupOrder.filter(group => groupedDevices.has(group))
   }
 

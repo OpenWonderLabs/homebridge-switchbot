@@ -10,13 +10,17 @@ export async function fetchDevices(): Promise<any[]> {
       throw new TypeError('Homebridge UI API not available')
     }
     const configArr = await homebridge.getPluginConfig()
-    const config = Array.isArray(configArr) && configArr.length > 0 ? configArr.find(isSwitchBotPlatformConfig) : null
+    const config = Array.isArray(configArr) && configArr.length > 0
+      ? configArr.find(isSwitchBotPlatformConfig)
+      : null
     if (!config || !Array.isArray(config.devices)) {
       return []
     }
     return config.devices
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
+    const msg = e instanceof Error
+      ? e.message
+      : String(e)
     uiLog.error('Error fetching devices:', msg)
     return []
   }
@@ -195,7 +199,9 @@ export async function addDevice(
     throw new TypeError('Homebridge UI API not available')
   }
   const configArr = await homebridge.getPluginConfig()
-  const idx = Array.isArray(configArr) ? configArr.findIndex(isSwitchBotPlatformConfig) : -1
+  const idx = Array.isArray(configArr)
+    ? configArr.findIndex(isSwitchBotPlatformConfig)
+    : -1
   if (idx === -1) {
     throw new Error('SwitchBot config not found')
   }
@@ -244,7 +250,9 @@ export async function addDevicesInBulk(
 }
 
 export function normalizeBulkAddDevicesResponse(resp: any): any {
-  const payload = resp?.data && typeof resp.data === 'object' ? resp.data : resp
+  const payload = resp?.data && typeof resp.data === 'object'
+    ? resp.data
+    : resp
   const addedCount = Number(payload?.addedCount ?? payload?.added ?? 0)
   const skippedCount = Number(payload?.skippedCount ?? payload?.skipped ?? 0)
   const updatedCount = Number(payload?.updatedCount ?? payload?.updated ?? 0)
@@ -275,7 +283,9 @@ export async function updateDevice(
     throw new TypeError('Homebridge UI API not available')
   }
   const configArr = await homebridge.getPluginConfig()
-  const idx = Array.isArray(configArr) ? configArr.findIndex(isSwitchBotPlatformConfig) : -1
+  const idx = Array.isArray(configArr)
+    ? configArr.findIndex(isSwitchBotPlatformConfig)
+    : -1
   if (idx === -1) {
     throw new Error('SwitchBot config not found')
   }
@@ -309,7 +319,9 @@ export async function deleteDevice(deviceId: string): Promise<any> {
     throw new TypeError('Homebridge UI API not available')
   }
   const configArr = await homebridge.getPluginConfig()
-  const idx = Array.isArray(configArr) ? configArr.findIndex(isSwitchBotPlatformConfig) : -1
+  const idx = Array.isArray(configArr)
+    ? configArr.findIndex(isSwitchBotPlatformConfig)
+    : -1
   if (idx === -1) {
     throw new Error('SwitchBot config not found')
   }
@@ -339,7 +351,9 @@ export async function deleteAllDevices(): Promise<any> {
   }
   const configArr = await homebridge.getPluginConfig()
   // Find or create the SwitchBot config block
-  let idx = Array.isArray(configArr) ? configArr.findIndex(isSwitchBotPlatformConfig) : -1
+  let idx = Array.isArray(configArr)
+    ? configArr.findIndex(isSwitchBotPlatformConfig)
+    : -1
   if (idx === -1) {
     // If not found, create a new config block for SwitchBot
     const newBlock = { platform: 'SwitchBot', devices: [] }

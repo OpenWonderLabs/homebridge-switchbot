@@ -240,7 +240,9 @@ function createConnectionTestControls(device: any): HTMLElement {
         status.textContent = `✓ ${method} · ${measuredLatency}ms`
         status.style.color = '#16a34a'
       } else {
-        const detail = result?.message ? ` · ${result.message}` : ''
+        const detail = result?.message
+          ? ` · ${result.message}`
+          : ''
         status.textContent = `✗ Failed · ${measuredLatency}ms${detail}`
         status.style.color = '#dc2626'
       }
@@ -264,7 +266,9 @@ function formatLastSeen(value: any): string {
   }
   try {
     const date = new Date(value)
-    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString()
+    return Number.isNaN(date.getTime())
+      ? String(value)
+      : date.toLocaleString()
   } catch (_e) {
     return String(value)
   }
@@ -310,16 +314,52 @@ export function renderDeviceDetailsPanel(device: any): HTMLElement {
   }
 
   const rows: Array<{ label: string, value: string, copyable?: boolean }> = [
-    { label: 'Name', value: String(device?.name || device?.configDeviceName || 'N/A') },
-    { label: 'Device ID', value: String(device?.id || device?.deviceId || 'N/A'), copyable: !!(device?.id || device?.deviceId) },
-    { label: 'MAC Address', value: String(device?.address || 'N/A'), copyable: !!device?.address },
-    { label: 'Device Type', value: String(device?.type || device?.configDeviceType || 'N/A') },
-    { label: 'Model', value: String(device?.model || 'N/A') },
-    { label: 'Hub ID', value: String(device?.hubDeviceId || 'N/A') },
-    { label: 'Battery', value: device?.battery !== undefined && device?.battery !== null ? `${device.battery}%` : 'N/A' },
-    { label: 'Firmware', value: String(device?.version || device?.firmware || 'N/A') },
-    { label: 'Cloud Service', value: device?.enabled === false ? 'Disabled' : 'Enabled' },
-    { label: 'Last Seen', value: formatLastSeen(device?.lastSeen || device?.lastseen || device?.updatedAt) },
+    {
+      label: 'Name',
+      value: String(device?.name || device?.configDeviceName || 'N/A'),
+    },
+    {
+      label: 'Device ID',
+      value: String(device?.id || device?.deviceId || 'N/A'),
+      copyable: !!(device?.id || device?.deviceId),
+    },
+    {
+      label: 'MAC Address',
+      value: String(device?.address || 'N/A'),
+      copyable: !!device?.address,
+    },
+    {
+      label: 'Device Type',
+      value: String(device?.type || device?.configDeviceType || 'N/A'),
+    },
+    {
+      label: 'Model',
+      value: String(device?.model || 'N/A'),
+    },
+    {
+      label: 'Hub ID',
+      value: String(device?.hubDeviceId || 'N/A'),
+    },
+    {
+      label: 'Battery',
+      value: device?.battery !== undefined && device?.battery !== null
+        ? `${device.battery}%`
+        : 'N/A',
+    },
+    {
+      label: 'Firmware',
+      value: String(device?.version || device?.firmware || 'N/A'),
+    },
+    {
+      label: 'Cloud Service',
+      value: device?.enabled === false
+        ? 'Disabled'
+        : 'Enabled',
+    },
+    {
+      label: 'Last Seen',
+      value: formatLastSeen(device?.lastSeen || device?.lastseen || device?.updatedAt),
+    },
   ]
 
   for (const row of rows) {
@@ -497,7 +537,9 @@ export function renderDeviceDetailsPanel(device: any): HTMLElement {
       value.style.overflowWrap = 'anywhere'
       value.style.wordBreak = 'break-word'
       value.style.textAlign = 'right'
-      value.textContent = typeof device[key] === 'object' ? JSON.stringify(device[key]) : String(device[key])
+      value.textContent = typeof device[key] === 'object'
+        ? JSON.stringify(device[key])
+        : String(device[key])
 
       line.appendChild(label)
       line.appendChild(value)
@@ -671,7 +713,9 @@ export async function renderDiscoveredDevices(
         = d.battery < 10
           ? 'background: #dc2626; color: white; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; margin-left: 6px;'
           : 'background: #fbbf24; color: #111; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; margin-left: 6px;'
-      batteryWarn.title = d.battery < 10 ? 'Battery critically low' : 'Battery low'
+      batteryWarn.title = d.battery < 10
+        ? 'Battery critically low'
+        : 'Battery low'
       nameContainer.appendChild(batteryWarn)
     }
 
@@ -1012,9 +1056,15 @@ export function renderDeviceList(list: any[]): void {
 
     const deviceIdentifier = d.deviceId || d.id
     const id = `ID: ${deviceIdentifier}`
-    const typeText = d.configDeviceType || d.type ? `Type: ${d.configDeviceType || d.type}` : ''
-    const connText = d.connectionPreference ? `Conn: ${d.connectionPreference}` : ''
-    const roomText = d.room ? `Room: ${d.room}` : ''
+    const typeText = d.configDeviceType || d.type
+      ? `Type: ${d.configDeviceType || d.type}`
+      : ''
+    const connText = d.connectionPreference
+      ? `Conn: ${d.connectionPreference}`
+      : ''
+    const roomText = d.room
+      ? `Room: ${d.room}`
+      : ''
     meta.textContent = [id, typeText, connText, roomText].filter(Boolean).join(' | ')
 
     info.appendChild(nameContainer)

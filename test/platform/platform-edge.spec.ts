@@ -11,7 +11,10 @@ const mockLogger = {
   success: () => {},
   log: () => {},
 }
-const mockApi = { isMatterAvailable: () => false, isMatterEnabled: () => false } as any
+const mockApi = {
+  isMatterAvailable: () => false,
+  isMatterEnabled: () => false,
+} as any
 
 describe('platform edge cases', () => {
   const platforms = [
@@ -55,12 +58,19 @@ describe('platform edge cases', () => {
       })
 
       it('should fallback gracefully if isMatterAvailable returns true but isMatterEnabled returns false', () => {
-        const api = { ...mockApi, isMatterAvailable: () => true, isMatterEnabled: () => false }
+        const api = {
+          ...mockApi,
+          isMatterAvailable: () => true,
+          isMatterEnabled: () => false,
+        }
         expect(() => new Platform(mockLogger, { platform: 'SwitchBot' }, api)).not.toThrow()
       })
 
       it('should fallback gracefully if isMatterAvailable returns false', () => {
-        const api = { ...mockApi, isMatterAvailable: () => false }
+        const api = {
+          ...mockApi,
+          isMatterAvailable: () => false,
+        }
         expect(() => new Platform(mockLogger, { platform: 'SwitchBot' }, api)).not.toThrow()
       })
 

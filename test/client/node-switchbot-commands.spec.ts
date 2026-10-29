@@ -4,16 +4,34 @@ import { describe, expect, it, vi } from 'vitest'
 import { hsToRgb, toKelvin, toRgb } from '../../src/deviceCommandMapper'
 import { SwitchBotClient } from '../../src/switchbotClient'
 
-const logger = { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} }
+const logger = {
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  debug: () => {},
+}
 
 // Drive real node-switchbot devices (OpenAPI only) through the plugin client and record what
 // reaches the OpenAPI. Commands used to be looked up by device type string, and most real types
 // ("Plug Mini (US)", "Strip Light", "Lock Pro", ...) had no entry, so they failed as unsupported.
 async function send(deviceType: string, ...bodies: any[]) {
-  const switchbot = new SwitchBot({ enableBLE: false, token: 'token', secret: 'secret', enableRetry: false })
+  const switchbot = new SwitchBot({
+    enableBLE: false,
+    token: 'token',
+    secret: 'secret',
+    enableRetry: false,
+  })
   const api = switchbot.getAPIClient()!
   vi.spyOn(api, 'getDevices').mockResolvedValue({
-    deviceList: [{ deviceId: 'DEV', deviceName: 'Test', deviceType, enableCloudService: true, hubDeviceId: 'HUB' }],
+    deviceList: [
+      {
+        deviceId: 'DEV',
+        deviceName: 'Test',
+        deviceType,
+        enableCloudService: true,
+        hubDeviceId: 'HUB',
+      },
+    ],
     infraredRemoteList: [],
   } as any)
   const sendCommand = vi.spyOn(api, 'sendCommand').mockResolvedValue({ statusCode: 100, message: 'success', body: {} } as any)
@@ -26,8 +44,19 @@ async function send(deviceType: string, ...bodies: any[]) {
 }
 
 describe('commands reach node-switchbot devices', () => {
-  it.each(['Plug Mini (US)', 'Plug Mini (JP)', 'Plug', 'Relay Switch 1', 'Strip Light', 'Color Bulb', 'Ceiling Light'])('%s turns on and off', async (type) => {
-    expect(await send(type, { command: 'turnOn' }, { command: 'turnOff' })).toEqual([['turnOn', undefined], ['turnOff', undefined]])
+  it.each([
+    'Plug Mini (US)',
+    'Plug Mini (JP)',
+    'Plug',
+    'Relay Switch 1',
+    'Strip Light',
+    'Color Bulb',
+    'Ceiling Light',
+  ])('%s turns on and off', async (type) => {
+    expect(await send(type, { command: 'turnOn' }, { command: 'turnOff' })).toEqual([
+      ['turnOn', undefined],
+      ['turnOff', undefined],
+    ])
   })
 
   it('lock Pro locks and unlocks', async () => {
@@ -51,12 +80,19 @@ describe('commands reach node-switchbot devices', () => {
   })
 
   it('curtain and Blind Tilt set their position', async () => {
-    expect(await send('Curtain3', { command: 'setPosition', parameter: '30' })).toEqual([['setPosition', '0,ff,30']])
-    expect(await send('Blind Tilt', { command: 'setPosition', parameter: '50' })).toEqual([['setPosition', 'down;100']])
+    expect(await send('Curtain3', { command: 'setPosition', parameter: '30' })).toEqual([
+      ['setPosition', '0,ff,30'],
+    ])
+    expect(await send('Blind Tilt', { command: 'setPosition', parameter: '50' })).toEqual([
+      ['setPosition', 'down;100'],
+    ])
   })
 
   it('a vacuum starts and docks', async () => {
-    expect(await send('K10+', { command: 'start' }, { command: 'dock' })).toEqual([['start', undefined], ['dock', undefined]])
+    expect(await send('K10+', { command: 'start' }, { command: 'dock' })).toEqual([
+      ['start', undefined],
+      ['dock', undefined],
+    ])
   })
 
   it('an unsupported command is rejected', async () => {

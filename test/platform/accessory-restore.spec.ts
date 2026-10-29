@@ -15,13 +15,23 @@ describe('accessory restoration', () => {
     getRestored() { return (this as any)._accessoryCache }
   }
 
-  const logger = { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} }
+  const logger = {
+    info: () => {},
+    warn: () => {},
+    error: () => {},
+    debug: () => {},
+  }
   const config = {}
   const api = {}
 
   it('should restore HAP accessories from cache', () => {
     const platform = new TestHAPPlatform(logger, config, api)
-    platform.setCache([{ uuid: 'hap-1', context: { type: 'Bot' } }])
+    platform.setCache([
+      {
+        uuid: 'hap-1',
+        context: { type: 'Bot' },
+      },
+    ])
     const restored = platform.getRestored()
     expect(restored).toHaveLength(1)
     expect(restored[0].uuid).toBe('hap-1')
@@ -29,7 +39,12 @@ describe('accessory restoration', () => {
 
   it('should restore Matter accessories from cache', () => {
     const platform = new TestMatterPlatform(logger, config, api)
-    platform.setCache([{ uuid: 'matter-1', context: { type: 'Curtain' } }])
+    platform.setCache([
+      {
+        uuid: 'matter-1',
+        context: { type: 'Curtain' },
+      },
+    ])
     const restored = platform.getRestored()
     expect(restored).toHaveLength(1)
     expect(restored[0].uuid).toBe('matter-1')

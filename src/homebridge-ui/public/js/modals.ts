@@ -149,7 +149,11 @@ export async function importDiscoveredDevice(device: any): Promise<ImportDiscove
     ['auto', 'ble', 'openapi'].forEach((val) => {
       const opt = document.createElement('option')
       opt.value = val
-      opt.text = val === 'ble' ? 'BLE' : val === 'openapi' ? 'OpenAPI' : 'Auto'
+      opt.text = val === 'ble'
+        ? 'BLE'
+        : val === 'openapi'
+          ? 'OpenAPI'
+          : 'Auto'
       opt.selected = (device.connectionPreference || 'auto') === val
       connectionPrefSelect.appendChild(opt)
     })
@@ -568,7 +572,11 @@ export async function editDevice(device: any): Promise<void> {
   ;['auto', 'ble', 'openapi'].forEach((val) => {
     const opt = document.createElement('option')
     opt.value = val
-    opt.text = val === 'ble' ? 'BLE' : val === 'openapi' ? 'OpenAPI' : 'Auto'
+    opt.text = val === 'ble'
+      ? 'BLE'
+      : val === 'openapi'
+        ? 'OpenAPI'
+        : 'Auto'
     opt.selected = (device.connectionPreference || 'auto') === val
     connectionPrefSelect.appendChild(opt)
   })
@@ -723,7 +731,9 @@ export async function editDevice(device: any): Promise<void> {
       div.remove()
     } catch (e) {
       uiLog.error('Update error:', e)
-      errorMessage.textContent = `Error: ${e instanceof Error ? e.message : 'Failed to update device'}`
+      errorMessage.textContent = `Error: ${e instanceof Error
+        ? e.message
+        : 'Failed to update device'}`
       errorMessage.style.display = 'block'
     }
   }

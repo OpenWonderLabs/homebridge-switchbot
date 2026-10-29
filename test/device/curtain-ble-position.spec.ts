@@ -9,9 +9,21 @@ describe('curtain BLE position', () => {
       hasBLE: () => true,
       getInfo: () => ({ bleServiceData: advertisement }),
     }
-    const client = { getCachedDevice: () => nodeDevice }
-    const log = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
-    const curtain = new CurtainDevice({ id: 'curtain', type: 'Curtain', log, blePollingEnabled: false }, { _client: client, log } as any)
+    const client = {
+      getCachedDevice: () => nodeDevice,
+    }
+    const log = {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    }
+    const curtain = new CurtainDevice({
+      id: 'curtain',
+      type: 'Curtain',
+      log,
+      blePollingEnabled: false,
+    }, { _client: client, log } as any)
     const getState = vi.spyOn(curtain, 'getState')
     vi.spyOn(curtain, 'setState').mockResolvedValue(true)
     const characteristics = curtain.createHAPAccessory({}).services[0].characteristics

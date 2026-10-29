@@ -5,7 +5,12 @@ import { SwitchBotClient } from '../../src/switchbotClient'
 describe('switchBotClient OpenAPI fallback', () => {
   it('should fallback to OpenAPI if node-switchbot fails to load', async () => {
     // Simulate missing node-switchbot by making import throw
-    const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
+    const logger = {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    }
     const cfg = { openApiToken: 'token', openApiSecret: 'secret', logger }
     // Actually, we can't easily mock dynamic import, so just check that client still works
     const client = new SwitchBotClient(cfg as any)

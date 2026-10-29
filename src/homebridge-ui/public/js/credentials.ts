@@ -9,7 +9,9 @@ export async function loadCredentialStatus(): Promise<void> {
       return
     }
     const configArr = await homebridge.getPluginConfig()
-    const config = Array.isArray(configArr) && configArr.length > 0 ? configArr[0] : {}
+    const config = Array.isArray(configArr) && configArr.length > 0
+      ? configArr[0]
+      : {}
     const token = config.openApiToken || ''
     const secret = config.openApiSecret || ''
 
@@ -94,9 +96,13 @@ export async function saveCredentials(): Promise<void> {
     }, 3000)
   } catch (e) {
     uiLog.error('Save error:', e)
-    saveStatus.textContent = `Error: ${e instanceof Error ? e.message : 'Failed to save'}`
+    saveStatus.textContent = `Error: ${e instanceof Error
+      ? e.message
+      : 'Failed to save'}`
     saveStatus.classList.add('error')
-    toastError(e instanceof Error ? e.message : 'Failed to save credentials')
+    toastError(e instanceof Error
+      ? e.message
+      : 'Failed to save credentials')
   } finally {
     hideBusyUi()
     saveBtn.disabled = false

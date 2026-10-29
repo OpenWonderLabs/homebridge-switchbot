@@ -7,11 +7,27 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { GenericDevice } from '../../src/devices/genericDevice.js'
 
-const log: any = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), success: vi.fn() }
+const log: any = {
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
+  success: vi.fn(),
+}
 
 function device() {
-  const getDevice = vi.fn(async () => ({ getStatus: async () => ({ temperature: 22.7, humidity: 59 }) }))
-  const d = new GenericDevice({ id: 'B0E9FED044E3', type: 'meter', name: 'M', log }, { log, _client: { getDevice } } as any)
+  const getDevice = vi.fn(async () => ({
+    getStatus: async () => ({ temperature: 22.7, humidity: 59 }),
+  }))
+  const d = new GenericDevice({
+    id: 'B0E9FED044E3',
+    type: 'meter',
+    name: 'M',
+    log,
+  }, {
+    log,
+    _client: { getDevice },
+  } as any)
   return { d, getDevice }
 }
 
@@ -21,7 +37,12 @@ describe('genericDevice.getState caching', () => {
   it('fetches once for a burst of concurrent reads', async () => {
     const { d, getDevice } = device()
 
-    const states = await Promise.all([d.getState(), d.getState(), d.getState(), d.getState()])
+    const states = await Promise.all([
+      d.getState(),
+      d.getState(),
+      d.getState(),
+      d.getState(),
+    ])
 
     expect(getDevice).toHaveBeenCalledTimes(1)
     expect(states.every(s => s.temperature === 22.7)).toBe(true)
@@ -50,8 +71,18 @@ describe('genericDevice.getState caching', () => {
   it('marks an unreadable device and does not cache it', async () => {
     const getDevice = vi.fn()
       .mockRejectedValueOnce(new Error('offline'))
-      .mockResolvedValueOnce({ getStatus: async () => ({ temperature: 21 }) })
-    const d = new GenericDevice({ id: 'x', type: 'meter', name: 'M', log }, { log, _client: { getDevice } } as any)
+      .mockResolvedValueOnce({
+        getStatus: async () => ({ temperature: 21 }),
+      })
+    const d = new GenericDevice({
+      id: 'x',
+      type: 'meter',
+      name: 'M',
+      log,
+    }, {
+      log,
+      _client: { getDevice },
+    } as any)
 
     const first = await d.getState()
     const second = await d.getState()

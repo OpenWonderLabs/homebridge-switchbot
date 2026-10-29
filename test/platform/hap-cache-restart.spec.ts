@@ -16,7 +16,12 @@ import { PLATFORM_NAME, PLUGIN_NAME } from '../../src/settings.js'
 import { SwitchBotHAPPlatform } from '../../src/SwitchBotHAPPlatform.js'
 import { normalizeTypeForMatter } from '../../src/utils.js'
 
-const log = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
+const log = {
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
+}
 const INFO = Service.AccessoryInformation.UUID
 
 async function startOnce(cache: any[] | undefined, devices: { id: string, type: string, name: string }[], mutate?: (json: any) => void) {
@@ -25,11 +30,18 @@ async function startOnce(cache: any[] | undefined, devices: { id: string, type: 
     a._associatedPlugin = PLUGIN_NAME
     a._associatedPlatform = PLATFORM_NAME
   })
-  const api = { hap: { Service, Characteristic, uuid }, platformAccessory: PlatformAccessory, registerPlatformAccessories: vi.fn((_p, _q, accs) => register(accs)), updatePlatformAccessories: vi.fn() }
+  const api = {
+    hap: { Service, Characteristic, uuid },
+    platformAccessory: PlatformAccessory,
+    registerPlatformAccessories: vi.fn((_p, _q, accs) => register(accs)),
+    updatePlatformAccessories: vi.fn(),
+  }
   const platform = Object.create(SwitchBotHAPPlatform.prototype) as any
   platform.api = api
   platform.log = log
-  platform.config = { devices: devices.map(d => ({ deviceId: d.id, configDeviceType: d.type })) }
+  platform.config = {
+    devices: devices.map(d => ({ deviceId: d.id, configDeviceType: d.type })),
+  }
   platform.hapPushTargets = new Map()
   platform.accessories = new Map()
   for (const json of cache ?? []) {
@@ -40,14 +52,26 @@ async function startOnce(cache: any[] | undefined, devices: { id: string, type: 
   const list = []
   for (const d of devices) {
     const type = normalizeTypeForMatter(d.type)
-    const _client = { getDeviceStatus: vi.fn(async () => ({})), setDeviceState: vi.fn(async () => ({ success: true })), getDevice: vi.fn(async () => undefined) }
-    const created = await createDevice({ id: d.id, type, deviceType: d.type, name: d.name, log } as any, { log, devices: platform.config.devices, _client } as any, false)
+    const _client = {
+      getDeviceStatus: vi.fn(async () => ({})),
+      setDeviceState: vi.fn(async () => ({ success: true })),
+      getDevice: vi.fn(async () => undefined),
+    }
+    const created = await createDevice({
+      id: d.id,
+      type,
+      deviceType: d.type,
+      name: d.name,
+      log,
+    } as any, { log, devices: platform.config.devices, _client } as any, false)
     list.push({ created, d, type })
   }
   log.warn.mockClear()
   await platform.registerHAPAccessories(list)
   expect(log.warn).not.toHaveBeenCalled()
-  return [...platform.accessories.values()].map((a: any) => PlatformAccessory.serialize(a))
+  return [
+    ...platform.accessories.values(),
+  ].map((a: any) => PlatformAccessory.serialize(a))
 }
 
 describe('hAP accessory cache across restarts (#1424)', () => {
@@ -77,17 +101,34 @@ describe('hAP accessory cache across restarts (#1424)', () => {
   it('repairs a cache that is already missing AccessoryInformation, so the bridge can start', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'switchbot-cache-'))
     const good = await startOnce(undefined, devices)
-    const broken = good.map(a => ({ ...a, services: a.services.filter((s: any) => s.UUID !== INFO) }))
-    const otherPlugin = { ...broken[0], plugin: 'homebridge-other', UUID: uuid.generate('other') }
+    const broken = good.map(a => ({
+      ...a,
+      services: a.services.filter((s: any) => s.UUID !== INFO),
+    }))
+    const otherPlugin = {
+      ...broken[0],
+      plugin: 'homebridge-other',
+      UUID: uuid.generate('other'),
+    }
     const file = join(dir, 'cachedAccessories.0EF8A6716C95')
     writeFileSync(file, JSON.stringify([...broken, otherPlugin]))
     expect(() => PlatformAccessory.deserialize(broken[0])).toThrow('getCharacteristic')
 
     const messages: string[] = []
-    const api: any = { hap, user: { cachedAccessoryPath: () => dir } }
+    const api: any = {
+      hap,
+      user: {
+        cachedAccessoryPath: () => dir,
+      },
+    }
     const results = repairCachedAccessories(api, m => messages.push(m))
 
-    expect(results).toEqual([{ file, repaired: ['Curtain3-1', 'Plug-1'] }])
+    expect(results).toEqual([
+      {
+        file,
+        repaired: ['Curtain3-1', 'Plug-1'],
+      },
+    ])
     expect(messages[0]).toContain('Repaired 2 cached accessories')
     expect(readdirSync(dir)).toContain('cachedAccessories.0EF8A6716C95.switchbot-repair.bak')
     const repaired = JSON.parse(readFileSync(file, 'utf8'))
@@ -101,12 +142,24 @@ describe('hAP accessory cache across restarts (#1424)', () => {
 
   it('ignores missing directories, backups and unreadable files', () => {
     const dir = mkdtempSync(join(tmpdir(), 'switchbot-cache-'))
-    writeFileSync(join(dir, '.cachedAccessories.bak'), JSON.stringify([{ plugin: PLUGIN_NAME, services: [] }]))
+    writeFileSync(join(dir, '.cachedAccessories.bak'), JSON.stringify([
+      { plugin: PLUGIN_NAME, services: [] },
+    ]))
     writeFileSync(join(dir, 'cachedAccessories'), '{not json')
     const messages: string[] = []
-    expect(repairCachedAccessories({ hap, user: { cachedAccessoryPath: () => dir } } as any, m => messages.push(m))).toEqual([])
+    expect(repairCachedAccessories({
+      hap,
+      user: {
+        cachedAccessoryPath: () => dir,
+      },
+    } as any, m => messages.push(m))).toEqual([])
     expect(messages).toHaveLength(1)
-    expect(repairCachedAccessories({ hap, user: { cachedAccessoryPath: () => join(dir, 'missing') } } as any)).toEqual([])
+    expect(repairCachedAccessories({
+      hap,
+      user: {
+        cachedAccessoryPath: () => join(dir, 'missing'),
+      },
+    } as any)).toEqual([])
     expect(repairCachedAccessories({} as any)).toEqual([])
   })
 })

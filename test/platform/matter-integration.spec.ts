@@ -13,7 +13,12 @@ describe('matter integration platform', () => {
     getDevices() { return (this as any)._devices || [] }
   }
 
-  const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
+  const logger = {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  }
   const config = {}
   const api = {}
 

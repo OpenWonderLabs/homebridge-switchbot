@@ -8,8 +8,12 @@ function showToast(
 ): void {
   try {
     // Defensive: check for window and homebridge existence
-    const hb = typeof window !== 'undefined' ? (window as any).homebridge : undefined
-    const toast = hb && typeof hb.toast === 'object' ? hb.toast : undefined
+    const hb = typeof window !== 'undefined'
+      ? (window as any).homebridge
+      : undefined
+    const toast = hb && typeof hb.toast === 'object'
+      ? hb.toast
+      : undefined
     if (toast && typeof toast[method] === 'function') {
       try {
         toast[method](message, title)

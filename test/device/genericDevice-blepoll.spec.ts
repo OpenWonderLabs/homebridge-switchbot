@@ -51,9 +51,23 @@ describe('genericDevice BLE polling config', () => {
 // API budget and on top of the normal refresh, which can use up the 10,000 calls a day.
 describe('genericDevice BLE polling only polls over BLE', () => {
   function device(cfg: Record<string, unknown>, hasBLE: boolean | undefined) {
-    const nodeDevice = hasBLE === undefined ? undefined : { hasBLE: () => hasBLE }
-    const client = { devices: { get: () => nodeDevice }, getDevice: vi.fn(async () => nodeDevice) }
-    const d = new GenericDevice({ id: 'dev', type: 'Unknown', log: mockLogger, blePollIntervalMs: 60_000 }, { log: mockLogger, _client: client, ...cfg } as any)
+    const nodeDevice = hasBLE === undefined
+      ? undefined
+      : {
+          hasBLE: () => hasBLE,
+        }
+    const client = {
+      devices: {
+        get: () => nodeDevice,
+      },
+      getDevice: vi.fn(async () => nodeDevice),
+    }
+    const d = new GenericDevice({
+      id: 'dev',
+      type: 'Unknown',
+      log: mockLogger,
+      blePollIntervalMs: 60_000,
+    }, { log: mockLogger, _client: client, ...cfg } as any)
     const getState = vi.spyOn(d, 'getState').mockResolvedValue({})
     return { d, getState }
   }

@@ -101,7 +101,9 @@ export async function deleteDeviceFromConfig(deviceId: string, deviceName: strin
     toastSuccess(`Device "${deviceName || deviceId}" deleted successfully`)
   } catch (e) {
     uiLog.error('Delete error:', e)
-    toastError(e instanceof Error ? e.message : 'Failed to delete device')
+    toastError(e instanceof Error
+      ? e.message
+      : 'Failed to delete device')
   } finally {
     hideBusyUi()
   }
@@ -220,7 +222,9 @@ export async function deleteAllDevicesFromConfig(): Promise<void> {
     toastSuccess(`Removed ${deletedCount} device(s) successfully`)
   } catch (e) {
     uiLog.error('Delete all error:', e)
-    toastError(e instanceof Error ? e.message : 'Failed to delete all devices')
+    toastError(e instanceof Error
+      ? e.message
+      : 'Failed to delete all devices')
   } finally {
     hideBusyUi()
   }

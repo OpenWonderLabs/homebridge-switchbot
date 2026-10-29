@@ -80,7 +80,9 @@ async function syncAdvancedSettings(): Promise<void> {
     }
     status.textContent = 'Changes ready. Click Save to apply them.'
   } catch (e: any) {
-    status.textContent = `Failed to update settings: ${e && e.message ? e.message : e}`
+    status.textContent = `Failed to update settings: ${e && e.message
+      ? e.message
+      : e}`
     throw e
   }
 }

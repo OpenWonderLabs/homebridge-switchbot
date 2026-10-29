@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest'
 
 import { BotDevice, CurtainDevice } from '../../src/devices/genericDevice'
 
-const mockLogger = { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} }
+const mockLogger = {
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  debug: () => {},
+}
 
 describe('matter device descriptors', () => {
   it('should expose correct clusters for BotDevice', async () => {

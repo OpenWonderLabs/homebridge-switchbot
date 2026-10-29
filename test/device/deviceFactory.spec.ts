@@ -6,7 +6,12 @@ const botRegex = /Bot/i
 const curtainRegex = /Curtain/i
 
 describe('createDevice', () => {
-  const mockLogger = { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} }
+  const mockLogger = {
+    info: () => {},
+    warn: () => {},
+    error: () => {},
+    debug: () => {},
+  }
   const dummyConfig = { logger: mockLogger, log: mockLogger }
 
   it('should create a Bot device instance', async () => {

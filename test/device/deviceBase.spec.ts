@@ -3,7 +3,12 @@ import { describe, expect, it } from 'vitest'
 import { DeviceBase } from '../../src/devices/deviceBase'
 
 describe('deviceBase', () => {
-  const mockLogger = { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} }
+  const mockLogger = {
+    info: () => {},
+    warn: () => {},
+    error: () => {},
+    debug: () => {},
+  }
 
   // Concrete subclass for testing abstract DeviceBase
   class TestDevice extends DeviceBase {

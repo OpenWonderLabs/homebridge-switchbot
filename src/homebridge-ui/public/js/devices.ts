@@ -74,7 +74,9 @@ export async function addDeviceToConfig(device: any, options: { refresh?: boolea
 
     return { added: !alreadyExists }
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
+    const msg = e instanceof Error
+      ? e.message
+      : String(e)
     uiLog.error('Add device error:', msg)
     const status = document.getElementById('discoverStatus')
     if (status) {

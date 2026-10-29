@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest'
 
 import { BotDevice, CurtainDevice } from '../../src/devices/genericDevice'
 
-const mockLogger = { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} }
+const mockLogger = {
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  debug: () => {},
+}
 describe('matter device state translation', () => {
   it('should map Bot state to Matter OnOff', async () => {
     const bot = new BotDevice({ id: 'bot1', type: 'Bot' }, { log: mockLogger })

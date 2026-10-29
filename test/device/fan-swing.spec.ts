@@ -3,11 +3,18 @@ import { describe, expect, it, vi } from 'vitest'
 import { FanDevice } from '../../src/devices/genericDevice'
 
 const failRegex = /fail/
-const mockLogger = { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} }
+const mockLogger = {
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  debug: () => {},
+}
 
 function makeFan(id: string) {
   const fan = new FanDevice({ id, type: 'Fan' }, { log: mockLogger });
-  (fan as any).client = { setDeviceState: vi.fn().mockResolvedValue({ status: 'success' }) }
+  (fan as any).client = {
+    setDeviceState: vi.fn().mockResolvedValue({ status: 'success' }),
+  }
   return fan
 }
 

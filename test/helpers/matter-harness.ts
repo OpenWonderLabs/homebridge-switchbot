@@ -1,7 +1,9 @@
 export function makeFakeMatterApi() {
   const registered: any[] = []
   return {
-    uuid: { generate: (s: string) => `m-${s}` },
+    uuid: {
+      generate: (s: string) => `m-${s}`,
+    },
     registerPlatformAccessories: async (_plugin: string, _name: string, accs: any[]) => {
       registered.push(...accs)
     },
@@ -11,9 +13,24 @@ export function makeFakeMatterApi() {
 
 export function makeFakeHap() {
   return {
-    uuid: { generate: (s: string) => `h-${s}` },
-    Service: { Switch: 'Switch', Lightbulb: 'Lightbulb', Fan: 'Fan', WindowCovering: 'WindowCovering', LockMechanism: 'LockMechanism', HumiditySensor: 'HumiditySensor' },
-    Characteristic: { On: 'On', Brightness: 'Brightness', RotationSpeed: 'RotationSpeed', CurrentPosition: 'CurrentPosition', TargetPosition: 'TargetPosition' },
+    uuid: {
+      generate: (s: string) => `h-${s}`,
+    },
+    Service: {
+      Switch: 'Switch',
+      Lightbulb: 'Lightbulb',
+      Fan: 'Fan',
+      WindowCovering: 'WindowCovering',
+      LockMechanism: 'LockMechanism',
+      HumiditySensor: 'HumiditySensor',
+    },
+    Characteristic: {
+      On: 'On',
+      Brightness: 'Brightness',
+      RotationSpeed: 'RotationSpeed',
+      CurrentPosition: 'CurrentPosition',
+      TargetPosition: 'TargetPosition',
+    },
   }
 }
 

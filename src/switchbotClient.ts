@@ -12,7 +12,14 @@ export interface ISwitchBotClient {
   getDevice: (id: string) => Promise<any>
   getDevices: () => Promise<any[]>
   setDeviceState: (id: string, body: any) => Promise<any>
+  setDeviceKey?: (id: string, key: DeviceKey) => void
   destroy: () => Promise<void>
+}
+
+/** BLE encryption key for a device (relay switches, locks, air purifiers, bulbs...) */
+export interface DeviceKey {
+  encryptionKey: string
+  keyId?: string
 }
 
 /**
@@ -20,6 +27,13 @@ export interface ISwitchBotClient {
  * Leverages upstream resilience features (retry, circuit breaker, connection intelligence)
  * while maintaining plugin-specific features like write debouncing and OpenAPI fallback.
  */
+const APPLIED_KEY = Symbol('appliedDeviceKey')
+
+/** Compare ids case-insensitively and without MAC separators */
+function normalizeDeviceId(id: string): string {
+  return String(id).replace(/[:-]/g, '').toLowerCase()
+}
+
 export class SwitchBotClient implements ISwitchBotClient {
   private cfg: SwitchBotPluginConfig
   private client: SwitchBot | null = null
@@ -27,6 +41,8 @@ export class SwitchBotClient implements ISwitchBotClient {
   private discoveryCacheTtlMs = 30_000
   private lastDiscoveryAt = 0
   private discoveryInFlight?: Promise<any[]>
+  /** Keys by device id, applied to the node-switchbot device whenever it is looked up */
+  private deviceKeys = new Map<string, DeviceKey>()
   private logger: import('homebridge').Logger
   private pendingWrites: Map<string, { timer: any, body: any, resolvers: Array<{ resolve: (v: any) => void, reject: (e: any) => void }> }> = new Map()
 
@@ -75,7 +91,41 @@ export class SwitchBotClient implements ISwitchBotClient {
     }
   }
 
+  /**
+   * Set the BLE encryption key for a device. The node-switchbot device may not exist yet (it is
+   * created by discovery), so the key is kept and applied each time the device is looked up.
+   */
+  setDeviceKey(id: string, key: DeviceKey): void {
+    if (!id || !key?.encryptionKey) {
+      return
+    }
+    this.deviceKeys.set(normalizeDeviceId(id), key)
+    this.applyDeviceKey(this.getManagedDevice(id))
+  }
+
+  private applyDeviceKey(device: any): any {
+    if (!device || typeof device.setKey !== 'function' || this.deviceKeys.size === 0) {
+      return device
+    }
+    const info = typeof device.getInfo === 'function' ? device.getInfo() : device
+    const ids = [device.id, info?.id, info?.mac, info?.address, info?.deviceId].filter(Boolean).map(normalizeDeviceId)
+    const key = ids.map(i => this.deviceKeys.get(i)).find(Boolean)
+    if (key && device[APPLIED_KEY] !== key) {
+      try {
+        device.setKey({ encryptionKey: key.encryptionKey, keyId: key.keyId || undefined })
+        device[APPLIED_KEY] = key
+      } catch (e: any) {
+        this.logger?.warn?.(`[${device.id}] Invalid BLE encryption key: ${e?.message ?? e}`)
+      }
+    }
+    return device
+  }
+
   async getDevice(id: string): Promise<any> {
+    return this.applyDeviceKey(await this.findDevice(id))
+  }
+
+  private async findDevice(id: string): Promise<any> {
     if (this.client) {
       try {
         const fromManager = this.getManagedDevice(id)
@@ -118,10 +168,8 @@ export class SwitchBotClient implements ISwitchBotClient {
     if (this.client) {
       try {
         const fromManager = this.getManagedDevices()
-        if (fromManager.length > 0) {
-          return fromManager
-        }
-        return await this.ensureDiscovered(false)
+        const devices = fromManager.length > 0 ? fromManager : await this.ensureDiscovered(false)
+        return devices.map(device => this.applyDeviceKey(device))
       } catch (e) {
         this.logger?.warn?.('Client getDevices failed:', e)
         throw e

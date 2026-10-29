@@ -42,7 +42,9 @@ import { DeviceBase } from './deviceBase.js'
 
 function validateBLEResponseLength(buf: Buffer | Uint8Array | any[], expected: number, context = '', log: import('homebridge').Logger): boolean {
   if (!buf || typeof buf.length !== 'number' || buf.length !== expected) {
-    log.warn(`[BLE] Invalid response length${context ? ` for ${context}` : ''}: expected ${expected}, got ${buf?.length}`)
+    log.warn(`[BLE] Invalid response length${context
+      ? ` for ${context}`
+      : ''}: expected ${expected}, got ${buf?.length}`)
     return false
   }
   return true
@@ -67,19 +69,10 @@ export class GenericDevice extends DeviceBase {
     if (!this.log) {
       throw new Error('Device requires a logger (Homebridge logger) in opts or cfg')
     }
-    // If BLE encryptionKey/keyId provided, set on node-switchbot device instance if possible
-    if (opts.encryptionKey && this.client && typeof this.client.devices?.get === 'function') {
-      try {
-        const dev = this.client.devices.get(opts.id)
-        if (dev && typeof dev.setKey === 'function') {
-          dev.setKey({
-            encryptionKey: opts.encryptionKey,
-            keyId: opts.keyId || undefined,
-          })
-        }
-      } catch (e) {
-        // ignore if device not found or setKey not available
-      }
+    // BLE encryption key (relay switches, locks, air purifiers, bulbs): the client applies it to the
+    // node-switchbot device when that device is discovered.
+    if (opts.encryptionKey && typeof this.client?.setDeviceKey === 'function') {
+      this.client.setDeviceKey(opts.id, { encryptionKey: opts.encryptionKey, keyId: opts.keyId || undefined })
     }
     // BLE polling config: allow override via opts.blePollingEnabled/blePollIntervalMs or cfg.blePollingEnabled/blePollIntervalMs
     this._blePollingEnabled = opts?.blePollingEnabled ?? cfg?.blePollingEnabled ?? true
@@ -220,7 +213,10 @@ export class GenericDevice extends DeviceBase {
           // at its fallback for the whole window after one transient error.
           return { id: this.opts.id, type: this.opts.type, unreadable: true }
         }
-        this.stateCache = { at: Date.now(), value }
+        this.stateCache = {
+          at: Date.now(),
+          value,
+        }
         return value
       })
       .finally(() => {
@@ -238,7 +234,12 @@ export class GenericDevice extends DeviceBase {
         if (raw && (raw instanceof Buffer || Array.isArray(raw) || raw instanceof Uint8Array)) {
           // Default to 12, override per device if needed
           if (!validateBLEResponseLength(raw, 12, this.opts.type, this.log)) {
-            return { id: this.opts.id, type: this.opts.type, error: 'invalid_ble_response_length', raw }
+            return {
+              id: this.opts.id,
+              type: this.opts.type,
+              error: 'invalid_ble_response_length',
+              raw,
+            }
           }
         }
         // Normalize common response shapes
@@ -258,7 +259,9 @@ export class GenericDevice extends DeviceBase {
             return device
           }
         } catch (e: any) {
-          this.log?.debug?.(`getState: could not read status for ${this.opts.id}:`, e instanceof Error ? e.message : e)
+          this.log?.debug?.(`getState: could not read status for ${this.opts.id}:`, e instanceof Error
+            ? e.message
+            : e)
         }
       } catch (e) {
         // ignore and fallback
@@ -377,8 +380,14 @@ export class GenericDevice extends DeviceBase {
         type: 'OnOff',
         clusterId: MATTER_CLUSTER_IDS.OnOff,
         attributes: {
-          onOff: { read: async () => !!(await this.getState()).on || (await this.getState()).power === 'on' || (await this.getState()).state === 'on', write: async (v: any) => this.setState({ on: !!v }) },
-          [MATTER_ATTRIBUTE_IDS.OnOff.OnOff]: { read: async () => !!(await this.getState()).on || (await this.getState()).power === 'on' || (await this.getState()).state === 'on', write: async (v: any) => this.setState({ on: !!v }) },
+          onOff: {
+            read: async () => !!(await this.getState()).on || (await this.getState()).power === 'on' || (await this.getState()).state === 'on',
+            write: async (v: any) => this.setState({ on: !!v }),
+          },
+          [MATTER_ATTRIBUTE_IDS.OnOff.OnOff]: {
+            read: async () => !!(await this.getState()).on || (await this.getState()).power === 'on' || (await this.getState()).state === 'on',
+            write: async (v: any) => this.setState({ on: !!v }),
+          },
         },
       })
     }
@@ -389,8 +398,18 @@ export class GenericDevice extends DeviceBase {
         type: 'LevelControl',
         clusterId: MATTER_CLUSTER_IDS.LevelControl,
         attributes: {
-          currentLevel: { read: async () => (await this.getState()).brightness ?? 100, write: async (v: any) => this.setState({ brightness: Number(v) }) },
-          [MATTER_ATTRIBUTE_IDS.LevelControl.CurrentLevel]: { read: async () => (await this.getState()).brightness ?? 100, write: async (v: any) => this.setState({ brightness: Number(v) }) },
+          currentLevel: {
+            read: async () => (await this.getState()).brightness ?? 100,
+            write: async (v: any) => this.setState({
+              brightness: Number(v),
+            }),
+          },
+          [MATTER_ATTRIBUTE_IDS.LevelControl.CurrentLevel]: {
+            read: async () => (await this.getState()).brightness ?? 100,
+            write: async (v: any) => this.setState({
+              brightness: Number(v),
+            }),
+          },
         },
       })
     }
@@ -401,15 +420,51 @@ export class GenericDevice extends DeviceBase {
         type: 'ColorControl',
         clusterId: MATTER_CLUSTER_IDS.ColorControl,
         attributes: {
-          colorMode: { read: async () => 0 },
-          colorHue: { read: async () => (await this.getState()).hue ?? 0, write: async (v: any) => this.setState({ hue: Number(v) }) },
-          [MATTER_ATTRIBUTE_IDS.ColorControl.CurrentHue]: { read: async () => (await this.getState()).hue ?? 0, write: async (v: any) => this.setState({ hue: Number(v) }) },
-          colorSaturation: { read: async () => (await this.getState()).saturation ?? 0, write: async (v: any) => this.setState({ saturation: Number(v) }) },
-          [MATTER_ATTRIBUTE_IDS.ColorControl.CurrentSaturation]: { read: async () => (await this.getState()).saturation ?? 0, write: async (v: any) => this.setState({ saturation: Number(v) }) },
+          colorMode: {
+            read: async () => 0,
+          },
+          colorHue: {
+            read: async () => (await this.getState()).hue ?? 0,
+            write: async (v: any) => this.setState({
+              hue: Number(v),
+            }),
+          },
+          [MATTER_ATTRIBUTE_IDS.ColorControl.CurrentHue]: {
+            read: async () => (await this.getState()).hue ?? 0,
+            write: async (v: any) => this.setState({
+              hue: Number(v),
+            }),
+          },
+          colorSaturation: {
+            read: async () => (await this.getState()).saturation ?? 0,
+            write: async (v: any) => this.setState({
+              saturation: Number(v),
+            }),
+          },
+          [MATTER_ATTRIBUTE_IDS.ColorControl.CurrentSaturation]: {
+            read: async () => (await this.getState()).saturation ?? 0,
+            write: async (v: any) => this.setState({
+              saturation: Number(v),
+            }),
+          },
           ...(typeof state.colorTemperature === 'number' || typeof state.kelvin === 'number'
             ? {
-                colorTemperature: { read: async () => typeof (await this.getState()).colorTemperature === 'number' ? (await this.getState()).colorTemperature : Math.round(1000000 / ((await this.getState()).kelvin ?? 2500)), write: async (v: any) => this.setState({ colorTemperature: Number(v) }) },
-                [MATTER_ATTRIBUTE_IDS.ColorControl.ColorTemperatureMireds]: { read: async () => typeof (await this.getState()).colorTemperature === 'number' ? (await this.getState()).colorTemperature : Math.round(1000000 / ((await this.getState()).kelvin ?? 2500)), write: async (v: any) => this.setState({ colorTemperature: Number(v) }) },
+                colorTemperature: {
+                  read: async () => typeof (await this.getState()).colorTemperature === 'number'
+                    ? (await this.getState()).colorTemperature
+                    : Math.round(1000000 / ((await this.getState()).kelvin ?? 2500)),
+                  write: async (v: any) => this.setState({
+                    colorTemperature: Number(v),
+                  }),
+                },
+                [MATTER_ATTRIBUTE_IDS.ColorControl.ColorTemperatureMireds]: {
+                  read: async () => typeof (await this.getState()).colorTemperature === 'number'
+                    ? (await this.getState()).colorTemperature
+                    : Math.round(1000000 / ((await this.getState()).kelvin ?? 2500)),
+                  write: async (v: any) => this.setState({
+                    colorTemperature: Number(v),
+                  }),
+                },
               }
             : {}),
         },
@@ -422,7 +477,9 @@ export class GenericDevice extends DeviceBase {
         type: 'TemperatureMeasurement',
         // No clusterId, not present in MATTER_CLUSTER_IDS
         attributes: {
-          measuredValue: { read: async () => (await this.getState()).temperature ?? 0 },
+          measuredValue: {
+            read: async () => (await this.getState()).temperature ?? 0,
+          },
         },
       })
     }
@@ -433,7 +490,9 @@ export class GenericDevice extends DeviceBase {
         type: 'RelativeHumidityMeasurement',
         clusterId: MATTER_CLUSTER_IDS.RelativeHumidityMeasurement,
         attributes: {
-          measuredValue: { read: async () => (await this.getState()).humidity ?? 0 },
+          measuredValue: {
+            read: async () => (await this.getState()).humidity ?? 0,
+          },
         },
       })
     }
@@ -443,7 +502,9 @@ export class GenericDevice extends DeviceBase {
       clusters.push({
         type: 'AirQuality',
         attributes: {
-          CO2: { read: async () => (await this.getState()).CO2 ?? 0 },
+          CO2: {
+            read: async () => (await this.getState()).CO2 ?? 0,
+          },
         },
       })
     }
@@ -454,7 +515,12 @@ export class GenericDevice extends DeviceBase {
         type: 'DoorLock',
         clusterId: MATTER_CLUSTER_IDS.DoorLock,
         attributes: {
-          lockState: { read: async () => (await this.getState()).lockState ?? (await this.getState()).locked ? 1 : 0, write: async (v: any) => this.setState({ locked: !!v }) },
+          lockState: {
+            read: async () => (await this.getState()).lockState ?? (await this.getState()).locked
+              ? 1
+              : 0,
+            write: async (v: any) => this.setState({ locked: !!v }),
+          },
         },
       })
     }
@@ -465,7 +531,11 @@ export class GenericDevice extends DeviceBase {
         type: 'OccupancySensing',
         // No clusterId, not present in MATTER_CLUSTER_IDS
         attributes: {
-          occupancy: { read: async () => (await this.getState()).moveDetected === true || (await this.getState()).motion === true ? 1 : 0 },
+          occupancy: {
+            read: async () => (await this.getState()).moveDetected === true || (await this.getState()).motion === true
+              ? 1
+              : 0,
+          },
         },
       })
     }
@@ -476,7 +546,11 @@ export class GenericDevice extends DeviceBase {
         type: 'BooleanState',
         // No clusterId, not present in MATTER_CLUSTER_IDS
         attributes: {
-          stateValue: { read: async () => (await this.getState()).openState === 'open' || (await this.getState()).open === true ? 1 : 0 },
+          stateValue: {
+            read: async () => (await this.getState()).openState === 'open' || (await this.getState()).open === true
+              ? 1
+              : 0,
+          },
         },
       })
     }
@@ -486,7 +560,11 @@ export class GenericDevice extends DeviceBase {
       clusters.push({
         type: 'LeakSensor',
         attributes: {
-          leakDetected: { read: async () => (await this.getState()).leak === true || (await this.getState()).status === 1 ? 1 : 0 },
+          leakDetected: {
+            read: async () => (await this.getState()).leak === true || (await this.getState()).status === 1
+              ? 1
+              : 0,
+          },
         },
       })
     }
@@ -497,9 +575,15 @@ export class GenericDevice extends DeviceBase {
         type: 'ElectricalMeasurement',
         // No clusterId, not present in MATTER_CLUSTER_IDS
         attributes: {
-          voltage: { read: async () => (await this.getState()).voltage ?? 0 },
-          power: { read: async () => (await this.getState()).power ?? 0 },
-          electricCurrent: { read: async () => (await this.getState()).electricCurrent ?? 0 },
+          voltage: {
+            read: async () => (await this.getState()).voltage ?? 0,
+          },
+          power: {
+            read: async () => (await this.getState()).power ?? 0,
+          },
+          electricCurrent: {
+            read: async () => (await this.getState()).electricCurrent ?? 0,
+          },
         },
       })
     }
@@ -510,7 +594,12 @@ export class GenericDevice extends DeviceBase {
         type: 'FanControl',
         clusterId: MATTER_CLUSTER_IDS.FanControl,
         attributes: {
-          speedCurrent: { read: async () => (await this.getState()).speed ?? (await this.getState()).fanSpeed ?? 0, write: async (v: any) => this.setState({ speed: Number(v) }) },
+          speedCurrent: {
+            read: async () => (await this.getState()).speed ?? (await this.getState()).fanSpeed ?? 0,
+            write: async (v: any) => this.setState({
+              speed: Number(v),
+            }),
+          },
         },
       })
     }
@@ -520,7 +609,9 @@ export class GenericDevice extends DeviceBase {
       clusters.push({
         type: 'RobotVacuumCleaner',
         attributes: {
-          workingStatus: { read: async () => (await this.getState()).workingStatus ?? 'StandBy' },
+          workingStatus: {
+            read: async () => (await this.getState()).workingStatus ?? 'StandBy',
+          },
         },
       })
     }
@@ -562,56 +653,125 @@ export class BotDevice extends GenericDevice {
       if (pressMode && !on) {
         return
       }
-      const command = pressMode ? 'press' : on ? 'turnOn' : 'turnOff'
+      const command = pressMode
+        ? 'press'
+        : on ? 'turnOn' : 'turnOff'
       const result = await this.setState({ command, parameter: 'default', commandType: 'command' })
       if (result !== true && result?.success !== true) {
         throw new Error(`SwitchBot Bot ${command} failed: ${result?.reason ?? 'unknown error'}`)
       }
       if (!pressMode) {
-        this.lastCommand = { on, at: Date.now() }
+        this.lastCommand = {
+          on,
+          at: Date.now(),
+        }
       }
     }
 
     const control = (name: string, active: number | boolean, inactive: number | boolean, requestedOn: (value: any) => boolean) => ({
-      get: async () => (await isOn()) ? active : inactive,
+      get: async () => (await isOn())
+        ? active
+        : inactive,
       set: async (value: any) => setOn(requestedOn(value)),
-      ...(pressMode ? { refreshAfterSet: [name] } : {}),
+      ...(pressMode
+        ? {
+            refreshAfterSet: [name],
+          }
+        : {}),
     })
     const position = () => ({
-      CurrentPosition: { get: async () => (await isOn()) ? 100 : 0 },
-      PositionState: { get: async () => 2 },
+      CurrentPosition: {
+        get: async () => (await isOn())
+          ? 100
+          : 0,
+      },
+      PositionState: {
+        get: async () => 2,
+      },
       TargetPosition: control('TargetPosition', 100, 0, value => Number(value) > 0),
     })
     const active = (value: any) => Number(value) === 1
     const presentations: Record<string, { type: string, characteristics: Record<string, any> }> = {
-      switch: { type: 'Switch', characteristics: { On: control('On', true, false, value => value === true) } },
-      outlet: { type: 'Outlet', characteristics: { On: control('On', true, false, value => value === true) } },
-      door: { type: 'Door', characteristics: position() },
-      window: { type: 'Window', characteristics: position() },
-      windowcovering: { type: 'WindowCovering', characteristics: position() },
-      garagedoor: { type: 'GarageDoorOpener', characteristics: {
-        CurrentDoorState: { get: async () => (await isOn()) ? 0 : 1 },
-        TargetDoorState: control('TargetDoorState', 0, 1, value => Number(value) === 0),
-        ObstructionDetected: { get: async () => false },
-      } },
-      lock: { type: 'LockMechanism', characteristics: {
-        LockCurrentState: { get: async () => (await isOn()) ? 0 : 1 },
-        LockTargetState: control('LockTargetState', 0, 1, value => Number(value) === 0),
-      } },
-      faucet: { type: 'Faucet', characteristics: { Active: control('Active', 1, 0, active) } },
-      fan: { type: 'Fanv2', characteristics: { Active: control('Active', 1, 0, active) } },
-      stateful: { type: 'StatefulProgrammableSwitch', characteristics: {
-        ProgrammableSwitchEvent: {},
-        ProgrammableSwitchOutputState: {
-          ...control('ProgrammableSwitchOutputState', 1, 0, active),
-          ...(pressMode ? { refreshAfterSet: ['ProgrammableSwitchOutputState'] } : {}),
-          afterSet: (value: any, service: any, hap: any) => {
-            if (!pressMode || active(value)) {
-              service.getCharacteristic(hap.Characteristic.ProgrammableSwitchEvent).sendEventNotification(0)
-            }
+      switch: {
+        type: 'Switch',
+        characteristics: {
+          On: control('On', true, false, value => value === true),
+        },
+      },
+      outlet: {
+        type: 'Outlet',
+        characteristics: {
+          On: control('On', true, false, value => value === true),
+        },
+      },
+      door: {
+        type: 'Door',
+        characteristics: position(),
+      },
+      window: {
+        type: 'Window',
+        characteristics: position(),
+      },
+      windowcovering: {
+        type: 'WindowCovering',
+        characteristics: position(),
+      },
+      garagedoor: {
+        type: 'GarageDoorOpener',
+        characteristics: {
+          CurrentDoorState: {
+            get: async () => (await isOn())
+              ? 0
+              : 1,
+          },
+          TargetDoorState: control('TargetDoorState', 0, 1, value => Number(value) === 0),
+          ObstructionDetected: {
+            get: async () => false,
           },
         },
-      } },
+      },
+      lock: {
+        type: 'LockMechanism',
+        characteristics: {
+          LockCurrentState: {
+            get: async () => (await isOn())
+              ? 0
+              : 1,
+          },
+          LockTargetState: control('LockTargetState', 0, 1, value => Number(value) === 0),
+        },
+      },
+      faucet: {
+        type: 'Faucet',
+        characteristics: {
+          Active: control('Active', 1, 0, active),
+        },
+      },
+      fan: {
+        type: 'Fanv2',
+        characteristics: {
+          Active: control('Active', 1, 0, active),
+        },
+      },
+      stateful: {
+        type: 'StatefulProgrammableSwitch',
+        characteristics: {
+          ProgrammableSwitchEvent: {},
+          ProgrammableSwitchOutputState: {
+            ...control('ProgrammableSwitchOutputState', 1, 0, active),
+            ...(pressMode
+              ? {
+                  refreshAfterSet: ['ProgrammableSwitchOutputState'],
+                }
+              : {}),
+            afterSet: (value: any, service: any, hap: any) => {
+              if (!pressMode || active(value)) {
+                service.getCharacteristic(hap.Characteristic.ProgrammableSwitchEvent).sendEventNotification(0)
+              }
+            },
+          },
+        },
+      },
     }
 
     return {
@@ -701,9 +861,15 @@ export class CurtainDevice extends GenericDevice {
                 }
                 const previousPosition = this.lastKnownPosition
                 this.lastTargetPosition = position
-                this.positionState = position > this.lastKnownPosition ? 1 : position < this.lastKnownPosition ? 0 : 2
+                this.positionState = position > this.lastKnownPosition
+                  ? 1
+                  : position < this.lastKnownPosition
+                    ? 0
+                    : 2
                 try {
-                  const result = await this.setState({ position: this.toSwitchBotPosition(position) })
+                  const result = await this.setState({
+                    position: this.toSwitchBotPosition(position),
+                  })
                   if (result === false || result?.success === false) {
                     throw new Error(result?.reason ?? 'Curtain position command failed')
                   }
@@ -736,16 +902,22 @@ export class CurtainDevice extends GenericDevice {
       currentPositionLiftPercent100ths: {
         read: async () => {
           const s = await this.getState()
-          return typeof s.position === 'number' ? Math.round(s.position * 100) : 0
+          return typeof s.position === 'number'
+            ? Math.round(s.position * 100)
+            : 0
         },
         write: undefined,
       },
       targetPositionLiftPercent100ths: {
         read: async () => {
           const s = await this.getState()
-          return typeof s.position === 'number' ? Math.round(s.position * 100) : 0
+          return typeof s.position === 'number'
+            ? Math.round(s.position * 100)
+            : 0
         },
-        write: async (v: any) => this.setState({ position: Math.round(Number(v) / 100) }),
+        write: async (v: any) => this.setState({
+          position: Math.round(Number(v) / 100),
+        }),
       },
       operationalStatus: {
         read: async () => state.operationalStatus ?? { global: 0, lift: 0, tilt: 0 },
@@ -773,16 +945,22 @@ export class CurtainDevice extends GenericDevice {
       attributes.currentPositionTiltPercent100ths = {
         read: async () => {
           const s = await this.getState()
-          return typeof s.tilt === 'number' ? Math.round(s.tilt * 100) : 0
+          return typeof s.tilt === 'number'
+            ? Math.round(s.tilt * 100)
+            : 0
         },
         write: undefined,
       }
       attributes.targetPositionTiltPercent100ths = {
         read: async () => {
           const s = await this.getState()
-          return typeof s.tilt === 'number' ? Math.round(s.tilt * 100) : 0
+          return typeof s.tilt === 'number'
+            ? Math.round(s.tilt * 100)
+            : 0
         },
-        write: async (v: any) => this.setState({ tilt: Math.round(Number(v) / 100) }),
+        write: async (v: any) => this.setState({
+          tilt: Math.round(Number(v) / 100),
+        }),
       }
     }
     const windowCoveringCluster = {
@@ -824,10 +1002,14 @@ export class FanDevice extends GenericDevice {
             RotationSpeed: {
               get: async () => {
                 const s = await this.getState()
-                return typeof s.speed === 'number' ? s.speed : 0
+                return typeof s.speed === 'number'
+                  ? s.speed
+                  : 0
               },
               set: async (v: any) => {
-                await this.setState({ speed: Number(v) })
+                await this.setState({
+                  speed: Number(v),
+                })
               },
             },
           },
@@ -841,7 +1023,11 @@ export class FanDevice extends GenericDevice {
 
     // Oscillation support
     if (typeof change.oscillate === 'boolean') {
-      const body = { command: 'setOscillation', parameter: change.oscillate ? 'on' : 'off', commandType: 'command' }
+      const body = {
+        command: 'setOscillation',
+        parameter: change.oscillate ? 'on' : 'off',
+        commandType: 'command',
+      }
       try {
         return await this.client.setDeviceState(this.opts.id, body)
       } catch (err) {
@@ -887,9 +1073,15 @@ export class FanDevice extends GenericDevice {
           type: 'OnOff',
           clusterId: MATTER_CLUSTER_IDS.OnOff,
           attributes: {
-            onOff: { read: async () => { const s = await this.getState(); return !!(s && (s.on === true || s.state === 'on')) }, write: async (v: any) => this.setState({ on: !!v }) },
+            onOff: {
+              read: async () => { const s = await this.getState(); return !!(s && (s.on === true || s.state === 'on')) },
+              write: async (v: any) => this.setState({ on: !!v }),
+            },
             // numeric attribute id for onOff
-            [MATTER_ATTRIBUTE_IDS.OnOff.OnOff]: { read: async () => { const s = await this.getState(); return !!(s && (s.on === true || s.state === 'on')) }, write: async (v: any) => this.setState({ on: !!v }) },
+            [MATTER_ATTRIBUTE_IDS.OnOff.OnOff]: {
+              read: async () => { const s = await this.getState(); return !!(s && (s.on === true || s.state === 'on')) },
+              write: async (v: any) => this.setState({ on: !!v }),
+            },
           },
         },
         {
@@ -897,10 +1089,34 @@ export class FanDevice extends GenericDevice {
           type: 'FanControl',
           clusterId: MATTER_CLUSTER_IDS.FanControl,
           attributes: {
-            rotationSpeed: { read: async () => { const s = await this.getState(); return typeof s.speed === 'number' ? s.speed : 0 }, write: async (v: any) => this.setState({ speed: Number(v) }) },
-            [MATTER_ATTRIBUTE_IDS.FanControl.SpeedCurrent]: { read: async () => { const s = await this.getState(); return typeof s.speed === 'number' ? s.speed : 0 }, write: async (v: any) => this.setState({ speed: Number(v) }) },
-            oscillation: { read: async () => { const s = await this.getState(); return !!s?.oscillating }, write: async (v: any) => this.setState({ oscillate: !!v }) },
-            swingMode: { read: async () => { const s = await this.getState(); return s?.swingMode ?? null }, write: async (v: any) => this.setState({ swingMode: v }) },
+            rotationSpeed: {
+              read: async () => {
+                const s = await this.getState(); return typeof s.speed === 'number'
+                  ? s.speed
+                  : 0
+              },
+              write: async (v: any) => this.setState({
+                speed: Number(v),
+              }),
+            },
+            [MATTER_ATTRIBUTE_IDS.FanControl.SpeedCurrent]: {
+              read: async () => {
+                const s = await this.getState(); return typeof s.speed === 'number'
+                  ? s.speed
+                  : 0
+              },
+              write: async (v: any) => this.setState({
+                speed: Number(v),
+              }),
+            },
+            oscillation: {
+              read: async () => { const s = await this.getState(); return !!s?.oscillating },
+              write: async (v: any) => this.setState({ oscillate: !!v }),
+            },
+            swingMode: {
+              read: async () => { const s = await this.getState(); return s?.swingMode ?? null },
+              write: async (v: any) => this.setState({ swingMode: v }),
+            },
           },
         },
       ],
@@ -927,10 +1143,14 @@ export class LightDevice extends GenericDevice {
               props: { minValue: 0, maxValue: 100, minStep: 1 },
               get: async () => {
                 const s = await this.getState()
-                return typeof s.brightness === 'number' ? s.brightness : 100
+                return typeof s.brightness === 'number'
+                  ? s.brightness
+                  : 100
               },
               set: async (v: any) => {
-                await this.setState({ brightness: Number(v) })
+                await this.setState({
+                  brightness: Number(v),
+                })
               },
             },
             Hue: {
@@ -967,7 +1187,9 @@ export class LightDevice extends GenericDevice {
                 return 0
               },
               set: async (v: any) => {
-                await this.setState({ hue: Number(v) })
+                await this.setState({
+                  hue: Number(v),
+                })
               },
             },
             Saturation: {
@@ -984,13 +1206,17 @@ export class LightDevice extends GenericDevice {
                   const b = Number.parseInt(cleaned.substr(4, 2), 16) / 255
                   const mx = Math.max(r, g, b); const mn = Math.min(r, g, b)
                   const d = mx - mn
-                  const sat = mx === 0 ? 0 : Math.round((d / mx) * 100)
+                  const sat = mx === 0
+                    ? 0
+                    : Math.round((d / mx) * 100)
                   return sat
                 }
                 return 0
               },
               set: async (v: any) => {
-                await this.setState({ saturation: Number(v) })
+                await this.setState({
+                  saturation: Number(v),
+                })
               },
             },
             ColorTemperature: {
@@ -1007,7 +1233,9 @@ export class LightDevice extends GenericDevice {
                 return 400
               },
               set: async (v: any) => {
-                await this.setState({ colorTemperature: Number(v) })
+                await this.setState({
+                  colorTemperature: Number(v),
+                })
               },
             },
           },
@@ -1076,8 +1304,14 @@ export class LightDevice extends GenericDevice {
           type: 'OnOff',
           clusterId: MATTER_CLUSTER_IDS.OnOff,
           attributes: {
-            onOff: { read: async () => { const s = await this.getState(); return !!(s && (s.on === true || s.state === 'on' || s.power === 'on')) }, write: async (v: any) => this.setState({ on: !!v }) },
-            [MATTER_ATTRIBUTE_IDS.OnOff.OnOff]: { read: async () => { const s = await this.getState(); return !!(s && (s.on === true || s.state === 'on' || s.power === 'on')) }, write: async (v: any) => this.setState({ on: !!v }) },
+            onOff: {
+              read: async () => { const s = await this.getState(); return !!(s && (s.on === true || s.state === 'on' || s.power === 'on')) },
+              write: async (v: any) => this.setState({ on: !!v }),
+            },
+            [MATTER_ATTRIBUTE_IDS.OnOff.OnOff]: {
+              read: async () => { const s = await this.getState(); return !!(s && (s.on === true || s.state === 'on' || s.power === 'on')) },
+              write: async (v: any) => this.setState({ on: !!v }),
+            },
           },
         },
         {
@@ -1085,8 +1319,26 @@ export class LightDevice extends GenericDevice {
           type: 'LevelControl',
           clusterId: MATTER_CLUSTER_IDS.LevelControl,
           attributes: {
-            currentLevel: { read: async () => { const s = await this.getState(); return typeof s.brightness === 'number' ? s.brightness : 100 }, write: async (v: any) => this.setState({ brightness: Number(v) }) },
-            [MATTER_ATTRIBUTE_IDS.LevelControl.CurrentLevel]: { read: async () => { const s = await this.getState(); return typeof s.brightness === 'number' ? s.brightness : 100 }, write: async (v: any) => this.setState({ brightness: Number(v) }) },
+            currentLevel: {
+              read: async () => {
+                const s = await this.getState(); return typeof s.brightness === 'number'
+                  ? s.brightness
+                  : 100
+              },
+              write: async (v: any) => this.setState({
+                brightness: Number(v),
+              }),
+            },
+            [MATTER_ATTRIBUTE_IDS.LevelControl.CurrentLevel]: {
+              read: async () => {
+                const s = await this.getState(); return typeof s.brightness === 'number'
+                  ? s.brightness
+                  : 100
+              },
+              write: async (v: any) => this.setState({
+                brightness: Number(v),
+              }),
+            },
           },
         },
         {
@@ -1095,17 +1347,65 @@ export class LightDevice extends GenericDevice {
           clusterId: MATTER_CLUSTER_IDS.ColorControl,
           attributes: {
             // Required colorMode attribute for Matter conformance (0 = currentHueAndSaturation)
-            colorMode: { read: async () => 0 },
-            colorHue: { read: async () => { const s = await this.getState(); return typeof s.hue === 'number' ? s.hue : 0 }, write: async (v: any) => this.setState({ hue: Number(v) }) },
-            [MATTER_ATTRIBUTE_IDS.ColorControl.CurrentHue]: { read: async () => { const s = await this.getState(); return typeof s.hue === 'number' ? s.hue : 0 }, write: async (v: any) => this.setState({ hue: Number(v) }) },
-            colorSaturation: { read: async () => { const s = await this.getState(); return typeof s.saturation === 'number' ? s.saturation : 0 }, write: async (v: any) => this.setState({ saturation: Number(v) }) },
-            [MATTER_ATTRIBUTE_IDS.ColorControl.CurrentSaturation]: { read: async () => { const s = await this.getState(); return typeof s.saturation === 'number' ? s.saturation : 0 }, write: async (v: any) => this.setState({ saturation: Number(v) }) },
-            colorTemperature: { read: async () => {
-              const s = await this.getState(); if (typeof s.colorTemperature === 'number') { return s.colorTemperature } if (typeof s.kelvin === 'number') { return Math.round(1000000 / s.kelvin) } return 400
-            }, write: async (v: any) => this.setState({ colorTemperature: Number(v) }) },
-            [MATTER_ATTRIBUTE_IDS.ColorControl.ColorTemperatureMireds]: { read: async () => {
-              const s = await this.getState(); if (typeof s.colorTemperature === 'number') { return s.colorTemperature } if (typeof s.kelvin === 'number') { return Math.round(1000000 / s.kelvin) } return 400
-            }, write: async (v: any) => this.setState({ colorTemperature: Number(v) }) },
+            colorMode: {
+              read: async () => 0,
+            },
+            colorHue: {
+              read: async () => {
+                const s = await this.getState(); return typeof s.hue === 'number'
+                  ? s.hue
+                  : 0
+              },
+              write: async (v: any) => this.setState({
+                hue: Number(v),
+              }),
+            },
+            [MATTER_ATTRIBUTE_IDS.ColorControl.CurrentHue]: {
+              read: async () => {
+                const s = await this.getState(); return typeof s.hue === 'number'
+                  ? s.hue
+                  : 0
+              },
+              write: async (v: any) => this.setState({
+                hue: Number(v),
+              }),
+            },
+            colorSaturation: {
+              read: async () => {
+                const s = await this.getState(); return typeof s.saturation === 'number'
+                  ? s.saturation
+                  : 0
+              },
+              write: async (v: any) => this.setState({
+                saturation: Number(v),
+              }),
+            },
+            [MATTER_ATTRIBUTE_IDS.ColorControl.CurrentSaturation]: {
+              read: async () => {
+                const s = await this.getState(); return typeof s.saturation === 'number'
+                  ? s.saturation
+                  : 0
+              },
+              write: async (v: any) => this.setState({
+                saturation: Number(v),
+              }),
+            },
+            colorTemperature: {
+              read: async () => {
+                const s = await this.getState(); if (typeof s.colorTemperature === 'number') { return s.colorTemperature } if (typeof s.kelvin === 'number') { return Math.round(1000000 / s.kelvin) } return 400
+              },
+              write: async (v: any) => this.setState({
+                colorTemperature: Number(v),
+              }),
+            },
+            [MATTER_ATTRIBUTE_IDS.ColorControl.ColorTemperatureMireds]: {
+              read: async () => {
+                const s = await this.getState(); if (typeof s.colorTemperature === 'number') { return s.colorTemperature } if (typeof s.kelvin === 'number') { return Math.round(1000000 / s.kelvin) } return 400
+              },
+              write: async (v: any) => this.setState({
+                colorTemperature: Number(v),
+              }),
+            },
           },
         },
       ],
@@ -1139,7 +1439,11 @@ export class MotionSensorDevice extends GenericDevice {
 
     // Oscillation support
     if (typeof change.oscillate === 'boolean') {
-      const body = { command: 'setOscillation', parameter: change.oscillate ? 'on' : 'off', commandType: 'command' }
+      const body = {
+        command: 'setOscillation',
+        parameter: change.oscillate ? 'on' : 'off',
+        commandType: 'command',
+      }
       try {
         return await this.client.setDeviceState(this.opts.id, body)
       } catch (err) {
@@ -1184,7 +1488,9 @@ export class ContactSensorDevice extends GenericDevice {
             ContactSensorState: {
               get: async () => {
                 const s = await this.getState()
-                return s && s.open ? 1 : 0
+                return s && s.open
+                  ? 1
+                  : 0
               },
             },
           },
@@ -1211,13 +1517,17 @@ export class LockDevice extends GenericDevice {
             LockCurrentState: {
               get: async () => {
                 const s = await this.getState()
-                return s && s.locked ? 1 : 0
+                return s && s.locked
+                  ? 1
+                  : 0
               },
             },
             LockTargetState: {
               get: async () => {
                 const s = await this.getState()
-                return s && s.locked ? 1 : 0
+                return s && s.locked
+                  ? 1
+                  : 0
               },
               set: async (v: any) => {
                 await this.setState({ locked: !!v })
@@ -1245,7 +1555,11 @@ export class LockDevice extends GenericDevice {
 
         if (action === 'removeUser' && (change.user || change.userId)) {
           const user = change.user ?? change.userId
-          const body = { command: 'removeUserCode', parameter: String(user), commandType: 'command' }
+          const body = {
+            command: 'removeUserCode',
+            parameter: String(user),
+            commandType: 'command',
+          }
           return await this.client.setDeviceState(this.opts.id, body)
         }
 
@@ -1271,7 +1585,11 @@ export class LockDevice extends GenericDevice {
     // Support setting lock PIN/passcode via `pin` or `passcode` (fallback)
     const pin = change?.pin ?? change?.passcode ?? change?.code
     if (typeof pin === 'string' || typeof pin === 'number') {
-      const body = { command: 'setLockPin', parameter: String(pin), commandType: 'command' }
+      const body = {
+        command: 'setLockPin',
+        parameter: String(pin),
+        commandType: 'command',
+      }
       try {
         return await this.client.setDeviceState(this.opts.id, body)
       } catch (err) {
@@ -1298,8 +1616,14 @@ export class LockDevice extends GenericDevice {
           type: 'DoorLock',
           clusterId: MATTER_CLUSTER_IDS.DoorLock,
           attributes: {
-            lockState: { read: async () => { const s = await this.getState(); return !!(s && s.locked) }, write: async (v: any) => this.setState({ locked: !!v }) },
-            [MATTER_ATTRIBUTE_IDS.DoorLock.LockState]: { read: async () => { const s = await this.getState(); return !!(s && s.locked) }, write: async (v: any) => this.setState({ locked: !!v }) },
+            lockState: {
+              read: async () => { const s = await this.getState(); return !!(s && s.locked) },
+              write: async (v: any) => this.setState({ locked: !!v }),
+            },
+            [MATTER_ATTRIBUTE_IDS.DoorLock.LockState]: {
+              read: async () => { const s = await this.getState(); return !!(s && s.locked) },
+              write: async (v: any) => this.setState({ locked: !!v }),
+            },
           },
         },
         {
@@ -1307,10 +1631,19 @@ export class LockDevice extends GenericDevice {
           type: 'DoorLockUserManagement',
           clusterId: 0x0301,
           attributes: {
-            addUser: { write: async (v: any) => this.setState({ action: 'addUser', user: v?.user, pin: v?.pin }) },
-            removeUser: { write: async (v: any) => this.setState({ action: 'removeUser', user: v?.user }) },
-            listUsers: { read: async () => { const r = await this.setState({ action: 'listUsers' }); return r }, write: undefined },
-            unlockWithPin: { write: async (v: any) => this.setState({ action: 'unlockWithPin', pin: v?.pin }) },
+            addUser: {
+              write: async (v: any) => this.setState({ action: 'addUser', user: v?.user, pin: v?.pin }),
+            },
+            removeUser: {
+              write: async (v: any) => this.setState({ action: 'removeUser', user: v?.user }),
+            },
+            listUsers: {
+              read: async () => { const r = await this.setState({ action: 'listUsers' }); return r },
+              write: undefined,
+            },
+            unlockWithPin: {
+              write: async (v: any) => this.setState({ action: 'unlockWithPin', pin: v?.pin }),
+            },
           },
         },
       ],
@@ -1328,7 +1661,9 @@ export class HumidifierDevice extends GenericDevice {
             Active: {
               get: async () => {
                 const s = await this.getState()
-                return s && s.on ? 1 : 0
+                return s && s.on
+                  ? 1
+                  : 0
               },
               set: async (v: any) => {
                 await this.setState({ on: v === 1 })
@@ -1337,7 +1672,9 @@ export class HumidifierDevice extends GenericDevice {
             CurrentHumidifierDehumidifierState: {
               get: async () => {
                 const s = await this.getState()
-                return s && s.on ? 2 : 0 // 0 = Inactive, 2 = Humidifying
+                return s && s.on
+                  ? 2
+                  : 0 // 0 = Inactive, 2 = Humidifying
               },
             },
             TargetHumidifierDehumidifierState: {
@@ -1349,16 +1686,22 @@ export class HumidifierDevice extends GenericDevice {
             CurrentRelativeHumidity: {
               get: async () => {
                 const s = await this.getState()
-                return typeof s.humidity === 'number' ? s.humidity : 0
+                return typeof s.humidity === 'number'
+                  ? s.humidity
+                  : 0
               },
             },
             RelativeHumidityHumidifierThreshold: {
               get: async () => {
                 const s = await this.getState()
-                return typeof s.targetHumidity === 'number' ? s.targetHumidity : 50
+                return typeof s.targetHumidity === 'number'
+                  ? s.targetHumidity
+                  : 50
               },
               set: async (v: any) => {
-                await this.setState({ humidity: Number(v) })
+                await this.setState({
+                  humidity: Number(v),
+                })
               },
             },
           },
@@ -1385,7 +1728,11 @@ export class HumidifierDevice extends GenericDevice {
     }
 
     if (typeof change.dry === 'boolean') {
-      const body = { command: 'setDry', parameter: change.dry ? 'on' : 'off', commandType: 'command' }
+      const body = {
+        command: 'setDry',
+        parameter: change.dry ? 'on' : 'off',
+        commandType: 'command',
+      }
       try {
         return await this.client.setDeviceState(this.opts.id, body)
       } catch (err) {
@@ -1414,16 +1761,36 @@ export class HumidifierMatterDevice extends HumidifierDevice {
           type: 'RelativeHumiditySensor',
           clusterId: MATTER_CLUSTER_IDS.RelativeHumidityMeasurement,
           attributes: {
-            currentRelativeHumidity: { read: async () => { const s = await this.getState(); return typeof s.humidity === 'number' ? s.humidity : 0 }, write: undefined },
-            [MATTER_ATTRIBUTE_IDS.RelativeHumidityMeasurement.MeasuredValue]: { read: async () => { const s = await this.getState(); return typeof s.humidity === 'number' ? s.humidity : 0 }, write: undefined },
+            currentRelativeHumidity: {
+              read: async () => {
+                const s = await this.getState(); return typeof s.humidity === 'number'
+                  ? s.humidity
+                  : 0
+              },
+              write: undefined,
+            },
+            [MATTER_ATTRIBUTE_IDS.RelativeHumidityMeasurement.MeasuredValue]: {
+              read: async () => {
+                const s = await this.getState(); return typeof s.humidity === 'number'
+                  ? s.humidity
+                  : 0
+              },
+              write: undefined,
+            },
           },
         },
         {
           type: 'OnOff',
           clusterId: MATTER_CLUSTER_IDS.OnOff,
           attributes: {
-            onOff: { read: async () => { const s = await this.getState(); return !!s?.on }, write: async (v: any) => this.setState({ on: !!v }) },
-            [MATTER_ATTRIBUTE_IDS.OnOff.OnOff]: { read: async () => { const s = await this.getState(); return !!s?.on }, write: async (v: any) => this.setState({ on: !!v }) },
+            onOff: {
+              read: async () => { const s = await this.getState(); return !!s?.on },
+              write: async (v: any) => this.setState({ on: !!v }),
+            },
+            [MATTER_ATTRIBUTE_IDS.OnOff.OnOff]: {
+              read: async () => { const s = await this.getState(); return !!s?.on },
+              write: async (v: any) => this.setState({ on: !!v }),
+            },
           },
         },
       ],
@@ -1441,7 +1808,9 @@ export class TemperatureSensorDevice extends GenericDevice {
             CurrentTemperature: {
               get: async () => {
                 const s = await this.getState()
-                return typeof s.temperature === 'number' ? s.temperature : 0
+                return typeof s.temperature === 'number'
+                  ? s.temperature
+                  : 0
               },
             },
           },
@@ -1473,7 +1842,9 @@ export class PlugDevice extends GenericDevice {
             OutletInUse: {
               get: async () => {
                 const s = await this.getState()
-                return s && s.inUse ? 1 : 0
+                return s && s.inUse
+                  ? 1
+                  : 0
               },
             },
           },
@@ -1506,7 +1877,9 @@ export class MeterDevice extends GenericDevice {
   /** The ppm at which HomeKit reports carbon dioxide as detected. */
   protected co2AbnormalThreshold(): number {
     const value = Number((this.cfg as any)?.co2AbnormalThreshold)
-    return Number.isFinite(value) && value > 0 ? value : CO2_ABNORMAL_PPM_DEFAULT
+    return Number.isFinite(value) && value > 0
+      ? value
+      : CO2_ABNORMAL_PPM_DEFAULT
   }
 
   createHAPAccessory(api: any) {
@@ -1517,7 +1890,9 @@ export class MeterDevice extends GenericDevice {
           CurrentTemperature: {
             get: async () => {
               const s = await this.getState()
-              return typeof s.temperature === 'number' ? s.temperature : 0
+              return typeof s.temperature === 'number'
+                ? s.temperature
+                : 0
             },
           },
         },
@@ -1528,7 +1903,9 @@ export class MeterDevice extends GenericDevice {
           CurrentRelativeHumidity: {
             get: async () => {
               const s = await this.getState()
-              return typeof s.humidity === 'number' ? s.humidity : 0
+              return typeof s.humidity === 'number'
+                ? s.humidity
+                : 0
             },
           },
         },
@@ -1538,7 +1915,9 @@ export class MeterDevice extends GenericDevice {
     if (this.reportsCO2()) {
       const co2 = async (): Promise<number> => {
         const s = await this.getState()
-        return typeof s.co2 === 'number' ? s.co2 : 0
+        return typeof s.co2 === 'number'
+          ? s.co2
+          : 0
       }
       services.push({
         type: 'CarbonDioxideSensor',
@@ -1547,7 +1926,9 @@ export class MeterDevice extends GenericDevice {
             get: co2,
           },
           CarbonDioxideDetected: {
-            get: async () => ((await co2()) >= this.co2AbnormalThreshold() ? 1 : 0),
+            get: async () => ((await co2()) >= this.co2AbnormalThreshold()
+              ? 1
+              : 0),
           },
         },
       })
@@ -1570,7 +1951,9 @@ export class MeterDevice extends GenericDevice {
           get: battery,
         },
         StatusLowBattery: {
-          get: async () => ((await battery()) < 20 ? 1 : 0),
+          get: async () => ((await battery()) < 20
+            ? 1
+            : 0),
         },
         ChargingState: {
           get: async () => 2,
@@ -1614,7 +1997,13 @@ export class WaterDetectorDevice extends GenericDevice {
       return status === 1
     }
     if (typeof status === 'string') {
-      return ['1', 'leak', 'leaked', 'detected', 'water_leak_detected'].includes(status.toLowerCase())
+      return [
+        '1',
+        'leak',
+        'leaked',
+        'detected',
+        'water_leak_detected',
+      ].includes(status.toLowerCase())
     }
     return undefined
   }
@@ -1758,7 +2147,9 @@ export class WaterDetectorDevice extends GenericDevice {
             StatusLowBattery: {
               get: () => {
                 const b = this.getBatteryFast(api)
-                return b < 20 ? 1 : 0
+                return b < 20
+                  ? 1
+                  : 0
               },
             },
             ChargingState: {

@@ -6,7 +6,12 @@ import { createDevice } from '../../src/deviceFactory'
 // node-switchbot 5 reports product-specific identities (pySwitchbot 3.0.0 parity).
 // Every identity must reach the same accessory class as its canonical display name.
 describe('product-specific model identities', () => {
-  const mockLogger = { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} }
+  const mockLogger = {
+    info: () => {},
+    warn: () => {},
+    error: () => {},
+    debug: () => {},
+  }
   const dummyConfig = { logger: mockLogger, log: mockLogger }
 
   it.each([

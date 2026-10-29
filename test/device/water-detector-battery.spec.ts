@@ -17,7 +17,12 @@ vi.mock('node-switchbot', () => ({
   OpenAPIClient: openApiMocks.OpenAPIClient,
 }))
 
-const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
+const mockLogger = {
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
+}
 
 const mockApi = {
   hap: {
@@ -34,8 +39,19 @@ const mockApi = {
 
 function makeDevice(config: Record<string, unknown> = {}) {
   return new WaterDetectorDevice(
-    { id: 'wd1', type: 'waterdetector', name: 'Fridge', log: mockLogger, blePollingEnabled: false },
-    { log: mockLogger, openApiToken: 'token', openApiSecret: 'secret', ...config } as any,
+    {
+      id: 'wd1',
+      type: 'waterdetector',
+      name: 'Fridge',
+      log: mockLogger,
+      blePollingEnabled: false,
+    },
+    {
+      log: mockLogger,
+      openApiToken: 'token',
+      openApiSecret: 'secret',
+      ...config,
+    } as any,
   )
 }
 

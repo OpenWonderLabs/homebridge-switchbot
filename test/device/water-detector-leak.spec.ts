@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest'
 
 import { WaterDetectorDevice } from '../../src/devices/genericDevice'
 
-const mockLogger = { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} }
+const mockLogger = {
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  debug: () => {},
+}
 
 const mockApi = {
   hap: {
