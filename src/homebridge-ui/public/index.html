@@ -141,6 +141,17 @@
               <small>Enable or disable BLE (Bluetooth Low Energy) support. If disabled, only OpenAPI (cloud) will be used.</small>
             </div>
             <div class="form-group">
+              <label for="nodeSwitchBotLogLevel">Node-SwitchBot Log Level</label>
+              <select id="nodeSwitchBotLogLevel" style="font-size: 14px; margin-right: 5px;">
+                <option value="0">None</option>
+                <option value="1">Error</option>
+                <option value="2">Warning</option>
+                <option value="3">Info</option>
+                <option value="4">Debug</option>
+              </select>
+              <small>Controls logs from the Node-SwitchBot library. Default: Warning.</small>
+            </div>
+            <div class="form-group">
               <label for="blePollingEnabled">
                 <input type="checkbox" id="blePollingEnabled" /> Enable BLE Polling Fallback
               </label>
@@ -204,7 +215,6 @@
         <input type="number" id="co2AbnormalThreshold" min="400" max="5000" step="1" value="1000" />
         <small>Meter Pro (CO2) only. At or above this level HomeKit reports carbon dioxide as detected. Default: 1000.</small>
       </div>
-      <button type="button" id="saveAdvancedSettingsBtn">Save Advanced Settings</button>
       <div id="advancedSettingsStatus" style="margin-top: 8px; font-size: 12px;"></div>
     </form>
   </div>

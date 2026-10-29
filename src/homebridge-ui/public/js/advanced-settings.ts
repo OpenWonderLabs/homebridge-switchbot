@@ -27,6 +27,7 @@ async function loadAdvancedSettings(): Promise<void> {
     ;(document.getElementById('enableMatter') as HTMLInputElement).checked = !!config.enableMatter
     ;(document.getElementById('preferMatter') as HTMLInputElement).checked = !!config.preferMatter
     ;(document.getElementById('enableBLE') as HTMLInputElement).checked = config.enableBLE !== false
+    ;(document.getElementById('nodeSwitchBotLogLevel') as HTMLSelectElement).value = String(config.nodeSwitchBotLogLevel ?? 2)
     ;(document.getElementById('blePollingEnabled') as HTMLInputElement).checked = config.blePollingEnabled !== false
     ;(document.getElementById('blePollIntervalMs') as HTMLInputElement).value = String(config.blePollIntervalMs ?? 600000)
     ;(document.getElementById('co2AbnormalThreshold') as HTMLInputElement).value = String(config.co2AbnormalThreshold ?? 1000)
@@ -35,9 +36,9 @@ async function loadAdvancedSettings(): Promise<void> {
   }
 }
 
-async function saveAdvancedSettings(): Promise<void> {
+async function syncAdvancedSettings(): Promise<void> {
   const status = document.getElementById('advancedSettingsStatus') as HTMLElement
-  status.textContent = 'Saving...'
+  status.textContent = 'Updating pending settings...'
   try {
     if (typeof homebridge.getPluginConfig !== 'function') {
       throw new TypeError('homebridge.getPluginConfig is not available')
@@ -66,6 +67,7 @@ async function saveAdvancedSettings(): Promise<void> {
     config.enableMatter = (document.getElementById('enableMatter') as HTMLInputElement).checked
     config.preferMatter = (document.getElementById('preferMatter') as HTMLInputElement).checked
     config.enableBLE = (document.getElementById('enableBLE') as HTMLInputElement).checked
+    config.nodeSwitchBotLogLevel = Number((document.getElementById('nodeSwitchBotLogLevel') as HTMLSelectElement).value)
     config.blePollingEnabled = (document.getElementById('blePollingEnabled') as HTMLInputElement).checked
     config.blePollIntervalMs = Number((document.getElementById('blePollIntervalMs') as HTMLInputElement).value) || 600000
     config.co2AbnormalThreshold = Number((document.getElementById('co2AbnormalThreshold') as HTMLInputElement).value) || 1000
@@ -76,21 +78,29 @@ async function saveAdvancedSettings(): Promise<void> {
     } else {
       throw new TypeError('homebridge.updatePluginConfig is not available')
     }
-    if (typeof homebridge.savePluginConfig === 'function') {
-      await homebridge.savePluginConfig()
-    }
-    status.textContent = 'Settings saved!'
+    status.textContent = 'Changes ready. Click Save to apply them.'
   } catch (e: any) {
-    status.textContent = `Failed to save: ${e && e.message ? e.message : e}`
+    status.textContent = `Failed to update settings: ${e && e.message ? e.message : e}`
+    throw e
   }
+}
+
+let pendingUpdate: Promise<void> = Promise.resolve()
+let latestChange = 0
+
+function queueAdvancedSettingsUpdate(): void {
+  const change = ++latestChange
+  homebridge.disableSaveButton?.()
+  pendingUpdate = pendingUpdate.catch(() => {}).then(syncAdvancedSettings).then(() => {
+    if (change === latestChange) {
+      homebridge.enableSaveButton?.()
+    }
+  }).catch(() => {})
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('advancedSettingsCard')) {
     loadAdvancedSettings()
-    const btn = document.getElementById('saveAdvancedSettingsBtn')
-    if (btn) {
-      btn.onclick = saveAdvancedSettings
-    }
+    document.getElementById('advancedSettingsForm')?.addEventListener('change', queueAdvancedSettingsUpdate)
   }
 })
