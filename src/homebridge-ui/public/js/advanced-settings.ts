@@ -27,6 +27,7 @@ async function loadAdvancedSettings(): Promise<void> {
     ;(document.getElementById('enableMatter') as HTMLInputElement).checked = !!config.enableMatter
     ;(document.getElementById('preferMatter') as HTMLInputElement).checked = !!config.preferMatter
     ;(document.getElementById('enableBLE') as HTMLInputElement).checked = config.enableBLE !== false
+    ;(document.getElementById('nodeSwitchBotLogLevel') as HTMLSelectElement).value = String(config.nodeSwitchBotLogLevel ?? 2)
     ;(document.getElementById('blePollingEnabled') as HTMLInputElement).checked = config.blePollingEnabled !== false
     ;(document.getElementById('blePollIntervalMs') as HTMLInputElement).value = String(config.blePollIntervalMs ?? 600000)
     ;(document.getElementById('co2AbnormalThreshold') as HTMLInputElement).value = String(config.co2AbnormalThreshold ?? 1000)
@@ -66,6 +67,7 @@ async function syncAdvancedSettings(): Promise<void> {
     config.enableMatter = (document.getElementById('enableMatter') as HTMLInputElement).checked
     config.preferMatter = (document.getElementById('preferMatter') as HTMLInputElement).checked
     config.enableBLE = (document.getElementById('enableBLE') as HTMLInputElement).checked
+    config.nodeSwitchBotLogLevel = Number((document.getElementById('nodeSwitchBotLogLevel') as HTMLSelectElement).value)
     config.blePollingEnabled = (document.getElementById('blePollingEnabled') as HTMLInputElement).checked
     config.blePollIntervalMs = Number((document.getElementById('blePollIntervalMs') as HTMLInputElement).value) || 600000
     config.co2AbnormalThreshold = Number((document.getElementById('co2AbnormalThreshold') as HTMLInputElement).value) || 1000

@@ -65,6 +65,7 @@ export class SwitchBotClient implements ISwitchBotClient {
         enableBLE: this.cfg.enableBLE !== false, // Use config value, default true
         scanTimeout,
         ...rawNodeClientConfig,
+        logLevel: this.cfg.nodeSwitchBotLogLevel ?? rawNodeClientConfig.logLevel,
       })
       this.lastDiscoveryAt = 0
       this.logger?.info?.('SwitchBot client initialized with native resilience features')

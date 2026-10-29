@@ -33,6 +33,34 @@
         "description": "Enable or disable BLE (Bluetooth Low Energy) support. If disabled, only OpenAPI (cloud) will be used.",
         "default": true
       },
+      "nodeSwitchBotLogLevel": {
+        "type": "integer",
+        "title": "Node-SwitchBot Log Level",
+        "description": "Controls logs from the Node-SwitchBot library. Default is Warning (2).",
+        "default": 2,
+        "oneOf": [
+          {
+            "const": 0,
+            "title": "None"
+          },
+          {
+            "const": 1,
+            "title": "Error"
+          },
+          {
+            "const": 2,
+            "title": "Warning"
+          },
+          {
+            "const": 3,
+            "title": "Info"
+          },
+          {
+            "const": 4,
+            "title": "Debug"
+          }
+        ]
+      },
       "co2AbnormalThreshold": {
         "type": "integer",
         "title": "CO2 Detected Threshold (ppm)",
@@ -348,6 +376,7 @@
       "items": [
         "enableMatter",
         "preferMatter",
+        "nodeSwitchBotLogLevel",
         "blePollingEnabled",
         "blePollIntervalMs",
         "openApiRefreshRate",
