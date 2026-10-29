@@ -81,6 +81,7 @@ export class SwitchBotClient implements ISwitchBotClient {
         enableBLE: this.cfg.enableBLE !== false, // Use config value, default true
         scanTimeout,
         ...rawNodeClientConfig,
+        logLevel: this.cfg.nodeSwitchBotLogLevel ?? rawNodeClientConfig.logLevel,
       })
       this.lastDiscoveryAt = 0
       this.logger?.info?.('SwitchBot client initialized with native resilience features')
@@ -157,6 +158,10 @@ export class SwitchBotClient implements ISwitchBotClient {
       }
     }
     throw new SwitchbotOperationError('No SwitchBot client available', 'no_client')
+  }
+
+  getCachedDevice(id: string): any {
+    return this.getManagedDevice(id)
   }
 
   async getDevices(): Promise<any[]> {

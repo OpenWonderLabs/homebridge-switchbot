@@ -24,6 +24,7 @@ export function registerDiscoveryEndpoint(server: HomebridgePluginUiServer) {
         enableRetry: true,
         enableCircuitBreaker: true,
         enableConnectionIntelligence: true,
+        logLevel: platform.nodeSwitchBotLogLevel,
       })
 
       await switchbot.discover({ timeout: 1000 })
@@ -70,6 +71,7 @@ export function registerDiscoveryEndpoint(server: HomebridgePluginUiServer) {
         enableRetry: true,
         enableCircuitBreaker: true,
         enableConnectionIntelligence: true,
+        logLevel: platform.nodeSwitchBotLogLevel,
       })
 
       const deviceMap = new Map<string, any>()

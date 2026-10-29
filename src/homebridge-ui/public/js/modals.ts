@@ -149,7 +149,7 @@ export async function importDiscoveredDevice(device: any): Promise<ImportDiscove
     ['auto', 'ble', 'openapi'].forEach((val) => {
       const opt = document.createElement('option')
       opt.value = val
-      opt.text = val.charAt(0).toUpperCase() + val.slice(1)
+      opt.text = val === 'ble' ? 'BLE' : val === 'openapi' ? 'OpenAPI' : 'Auto'
       opt.selected = (device.connectionPreference || 'auto') === val
       connectionPrefSelect.appendChild(opt)
     })
@@ -496,7 +496,7 @@ export async function editDevice(device: any): Promise<void> {
 
   const nameInput = document.createElement('input')
   nameInput.type = 'text'
-  nameInput.value = device.name || device.id
+  nameInput.value = device.configDeviceName || device.name || ''
   nameInput.style.width = '100%'
   nameInput.style.marginBottom = '12px'
   nameInput.style.padding = '8px 10px'
@@ -568,7 +568,7 @@ export async function editDevice(device: any): Promise<void> {
   ;['auto', 'ble', 'openapi'].forEach((val) => {
     const opt = document.createElement('option')
     opt.value = val
-    opt.text = val.charAt(0).toUpperCase() + val.slice(1)
+    opt.text = val === 'ble' ? 'BLE' : val === 'openapi' ? 'OpenAPI' : 'Auto'
     opt.selected = (device.connectionPreference || 'auto') === val
     connectionPrefSelect.appendChild(opt)
   })
@@ -670,7 +670,7 @@ export async function editDevice(device: any): Promise<void> {
       const { renderDeviceList } = await import('./render.js')
 
       const params = {
-        deviceId: device.id,
+        deviceId: device.deviceId,
         configDeviceName: nameInput.value || undefined,
         configDeviceType: typeSelect.value,
         connectionPreference: connectionPrefSelect.value,

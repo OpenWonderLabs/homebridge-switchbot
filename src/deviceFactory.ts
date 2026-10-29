@@ -150,7 +150,7 @@ export async function createDevice(opts: DeviceOptions, cfg: SwitchBotPluginConf
   // Always pass the logger to both device opts and config
   const logger = log || (cfg as any)?.logger || (cfg as any)?.log
   if (opts && opts.name && logger && typeof logger.info === 'function') {
-    logger.info(`[Matter/Debug] createDevice: Passing opts for ${opts.name}:`, JSON.stringify(opts, null, 2))
+    logger.debug(`[Matter] createDevice: Passing opts for ${opts.name}:`, JSON.stringify(opts, null, 2))
   }
   // Reuse existing client when provided via config to avoid creating
   // a new SwitchBotClient per device (which can be expensive).
