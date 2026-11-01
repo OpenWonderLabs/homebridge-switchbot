@@ -112,7 +112,17 @@ describe('hAP accessory cache across restarts (#1424)', () => {
     }
     const file = join(dir, 'cachedAccessories.0EF8A6716C95')
     writeFileSync(file, JSON.stringify([...broken, otherPlugin]))
-    expect(() => PlatformAccessory.deserialize(broken[0])).toThrow('getCharacteristic')
+    // hap-nodejs 2.2 (Homebridge 2.4) throws on this cache (#1424). hap-nodejs 2.3 (Homebridge 2.4.1
+    // betas) restores it without AccessoryInformation instead, so the repair is still needed.
+    let restored: any
+    try {
+      restored = PlatformAccessory.deserialize(broken[0])
+    } catch (e) {
+      expect(String(e)).toContain('getCharacteristic')
+    }
+    if (restored) {
+      expect(restored.services.some((s: any) => s.UUID === INFO)).toBe(false)
+    }
 
     const messages: string[] = []
     const api: any = {
