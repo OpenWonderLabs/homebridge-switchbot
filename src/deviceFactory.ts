@@ -100,6 +100,7 @@ const DEVICE_CLASS_MAP: Record<string, any> = {
   'floor lamp': LightDevice,
   'rgbicww floor lamp': LightStripDevice,
   'rgbicww strip light': LightStripDevice,
+  'permanent outdoor lights': LightStripDevice,
   'home climate panel': GenericDevice, // Climate panel family
   'lock': LockDevice,
   'humidifier2': HumidifierDevice,
