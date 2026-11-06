@@ -188,7 +188,7 @@ follow-up PR:
 
 ## Working Effectively
 
-Node `^22 || ^24`. Run these in order; each must pass before you commit:
+Node `^22 || ^24 || ^26`. Run these in order; each must pass before you commit:
 
 ```bash
 npm ci            # CI uses: npm ci --legacy-peer-deps
@@ -259,7 +259,7 @@ npm run lint      # eslint (src, test, UI html/js) then tsc --noEmit
 
 ## CI/CD Integration
 
-- `.github/workflows/ci.yml`: build, test and lint on Node 22 and 24 for pushes to `latest`/`beta-*`
+- `.github/workflows/ci.yml`: build, test and lint on Node 22, 24 and 26 for pushes to `latest`/`beta-*`
   and PRs to `latest`/`beta-*`.
 - `.github/workflows/release.yml`: pushes to `beta-*` publish a beta to npm; pushes to `latest`
   publish a stable release. It can also be started by hand (`workflow_dispatch`).
