@@ -1,0 +1,105 @@
+name: Update node-switchbot
+
+# When node-switchbot publishes a new release in the same major version, update the dependency
+# on latest and publish a plugin release with it.
+#
+# Commits pushed with GITHUB_TOKEN do not start other workflows, so after pushing, this workflow
+# starts release.yml itself (workflow_dispatch is the exception GitHub allows).
+#
+# A new major version of node-switchbot is never applied automatically: it can contain breaking
+# changes. The run summary flags it instead, and the update is done by hand in a PR.
+
+on:
+  schedule:
+    - cron: '23 * * * *' # hourly
+  workflow_dispatch:
+  # Lets node-switchbot's release workflow trigger this immediately, if it is given a token that
+  # can dispatch to this repository:
+  #   gh api repos/OpenWonderLabs/homebridge-switchbot/dispatches -f event_type=node-switchbot-released
+  repository_dispatch:
+    types: [node-switchbot-released]
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: node-switchbot-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: latest
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Compare with the newest node-switchbot on npm
+        id: check
+        run: |
+          published=$(npm view node-switchbot@latest version)
+          wanted=$(node -p "require('./package.json').dependencies['node-switchbot']")
+          current=$(node -p "process.argv[1].replace(/^[^0-9]*/, '')" "$wanted")
+          echo "published=$published" >> "$GITHUB_OUTPUT"
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          result=$(node -e '
+            const [a, b] = process.argv.slice(1).map(v => v.split("-")[0].split(".").map(Number))
+            const newer = a[0] !== b[0] ? a[0] > b[0] : a[1] !== b[1] ? a[1] > b[1] : a[2] > b[2]
+            console.log(!newer ? "none" : a[0] === b[0] ? "update" : "major")
+          ' "$published" "$current")
+          echo "result=$result" >> "$GITHUB_OUTPUT"
+          echo "node-switchbot: plugin requires ^$current, npm latest is $published -> $result"
+
+      - name: Flag a new major version
+        if: steps.check.outputs.result == 'major'
+        run: |
+          {
+            echo "### node-switchbot ${{ steps.check.outputs.published }} is a new major version"
+            echo
+            echo "The plugin requires ^${{ steps.check.outputs.current }}. Major updates can break the plugin, so"
+            echo "they are not applied automatically: update it in a PR to a beta branch and test it first."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::warning::node-switchbot ${{ steps.check.outputs.published }} is a new major version; update it by hand"
+
+      - name: Update node-switchbot
+        if: steps.check.outputs.result == 'update'
+        run: |
+          npm pkg set "dependencies.node-switchbot=^${{ steps.check.outputs.published }}"
+          npx -y npm@11 install --package-lock-only --ignore-scripts
+          git diff --stat
+
+      - name: Install, build, test and lint
+        if: steps.check.outputs.result == 'update'
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+          npm test
+          npm run lint
+
+      - name: Commit to latest
+        if: steps.check.outputs.result == 'update'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # Commit only the dependency change; the build regenerates other files
+          git add package.json package-lock.json
+          git commit -m "chore(deps): update node-switchbot to ${{ steps.check.outputs.published }}" \
+            -m "Automatic update after node-switchbot ${{ steps.check.outputs.published }} was published."
+          git push origin HEAD:latest
+
+      - name: Publish a plugin release
+        if: steps.check.outputs.result == 'update'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run release.yml --ref latest -f release_type=latest -f is_esm=true -f version_bump=patch
+          {
+            echo "### Updated node-switchbot to ${{ steps.check.outputs.published }}"
+            echo
+            echo "Committed to latest and started the Release workflow for a patch release."
+          } >> "$GITHUB_STEP_SUMMARY"

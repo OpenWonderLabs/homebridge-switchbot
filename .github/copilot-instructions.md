@@ -152,8 +152,17 @@ node -p "const v=require('./package.json').version.split('.'); v[2]=parseInt(v[2
 
 ## Following node-switchbot Changes
 
-node-switchbot tracks [pySwitchbot](https://github.com/sblibs/pySwitchbot). After node-switchbot
-ships a change, this repo usually needs a follow-up PR so the plugin can use it:
+node-switchbot tracks [pySwitchbot](https://github.com/sblibs/pySwitchbot).
+
+**Version bumps are automatic within a major version.** `.github/workflows/node-switchbot-update.yml`
+checks npm hourly. When node-switchbot publishes a newer release with the same major version, it
+updates `package.json` and `package-lock.json` on `latest`, runs build, test and lint, and starts
+`release.yml` for a patch release. Do not open PRs that only bump node-switchbot within a major;
+Dependabot ignores it for the same reason. A new **major** version is only flagged in that
+workflow's run summary: update it by hand in a PR to a beta branch.
+
+When node-switchbot ships something the plugin must change code to use, this repo needs a
+follow-up PR:
 
 1. Read the node-switchbot PR/release and list what consumers see: new device types, renamed or
    split model identities (`modelName`, OpenAPI `deviceType`), new status fields, new commands.
@@ -162,7 +171,9 @@ ships a change, this repo usually needs a follow-up PR so the plugin can use it:
    accessory behaviour in `src/devices/genericDevice.ts`.
 3. Make sure no existing saved `configDeviceType` stops resolving (normalization map or
    `src/homebridge-ui/utils/device-migration.ts`).
-4. Bump `node-switchbot` in `package.json` only to a version already published on npm.
+4. Only if the change needs a node-switchbot version newer than `latest` has (a new major, or
+   code that must ship with the bump), bump `node-switchbot` in `package.json` yourself, and only
+   to a version already published on npm.
 5. Add `createDevice` tests under `test/device/` asserting each affected type's accessory class.
 6. Run build, test and lint; commit the regenerated `config.schema.json` if `DEVICE_TYPES` changed.
 
@@ -242,7 +253,10 @@ npm run lint      # eslint (src, test, UI html/js) then tsc --noEmit
 - `.github/workflows/ci.yml`: build, test and lint on Node 22 and 24 for pushes to `latest`/`beta-*`
   and PRs to `latest`/`beta-*`.
 - `.github/workflows/release.yml`: pushes to `beta-*` publish a beta to npm; pushes to `latest`
-  publish a stable release.
+  publish a stable release. It can also be started by hand (`workflow_dispatch`).
+- `.github/workflows/node-switchbot-update.yml`: hourly, updates node-switchbot to its newest
+  release in the same major on `latest` and starts `release.yml` (see "Following node-switchbot
+  Changes"). Run it by hand from the Actions tab to pick up a release immediately.
 
 ## Complete Workflow Examples
 
