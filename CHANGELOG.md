@@ -1,3 +1,12 @@
+## [5.2.11](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v5.2.10...v5.2.11) (2026-11-06)
+
+
+### Bug Fixes
+
+* **deps:** update node-switchbot to 6.0.5 ([#1455](https://github.com/OpenWonderLabs/homebridge-switchbot/issues/1455)) ([d4962d5](https://github.com/OpenWonderLabs/homebridge-switchbot/commit/d4962d579222c868dce32477f0813130bd9e0b20))
+
+
+
 # [5.2.0](https://github.com/OpenWonderLabs/homebridge-switchbot/compare/v5.1.1...v5.2.0) (2026-10-09)
 
 
