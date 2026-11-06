@@ -1,13 +1,15 @@
 name: Update node-switchbot
 
-# When node-switchbot publishes a new release in the same major version, update the dependency
-# on latest and publish a plugin release with it.
+# When node-switchbot publishes a new release (patch, minor or major), open a pull request to
+# latest that updates it. Merging the pull request publishes a plugin release through release.yml.
 #
-# Commits pushed with GITHUB_TOKEN do not start other workflows, so after pushing, this workflow
-# starts release.yml itself (workflow_dispatch is the exception GitHub allows).
+# The pull request changes only the node-switchbot dependency range in package.json and its
+# entries in package-lock.json. It never changes the plugin's own "version": the release workflow
+# sets that when it publishes, from the patch / minor / major label on the merged pull request.
 #
-# A new major version of node-switchbot is never applied automatically: it can contain breaking
-# changes. The run summary flags it instead, and the update is done by hand in a PR.
+# The label is set to match the node-switchbot change. Change it before merging if the plugin
+# release should be a different kind (for example a node-switchbot major that needs no plugin
+# changes can ship as a minor).
 
 on:
   schedule:
@@ -21,11 +23,15 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
   actions: write
 
 concurrency:
   group: node-switchbot-update
   cancel-in-progress: false
+
+env:
+  BRANCH: deps/node-switchbot
 
 jobs:
   update:
@@ -45,61 +51,130 @@ jobs:
           published=$(npm view node-switchbot@latest version)
           wanted=$(node -p "require('./package.json').dependencies['node-switchbot']")
           current=$(node -p "process.argv[1].replace(/^[^0-9]*/, '')" "$wanted")
-          echo "published=$published" >> "$GITHUB_OUTPUT"
-          echo "current=$current" >> "$GITHUB_OUTPUT"
-          result=$(node -e '
+          level=$(node -e '
             const [a, b] = process.argv.slice(1).map(v => v.split("-")[0].split(".").map(Number))
             const newer = a[0] !== b[0] ? a[0] > b[0] : a[1] !== b[1] ? a[1] > b[1] : a[2] > b[2]
-            console.log(!newer ? "none" : a[0] === b[0] ? "update" : "major")
+            console.log(!newer ? "none" : a[0] !== b[0] ? "major" : a[1] !== b[1] ? "minor" : "patch")
           ' "$published" "$current")
-          echo "result=$result" >> "$GITHUB_OUTPUT"
-          echo "node-switchbot: plugin requires ^$current, npm latest is $published -> $result"
-
-      - name: Flag a new major version
-        if: steps.check.outputs.result == 'major'
-        run: |
           {
-            echo "### node-switchbot ${{ steps.check.outputs.published }} is a new major version"
-            echo
-            echo "The plugin requires ^${{ steps.check.outputs.current }}. Major updates can break the plugin, so"
-            echo "they are not applied automatically: update it in a PR to a beta branch and test it first."
-          } >> "$GITHUB_STEP_SUMMARY"
-          echo "::warning::node-switchbot ${{ steps.check.outputs.published }} is a new major version; update it by hand"
+            echo "published=$published"
+            echo "current=$current"
+            echo "level=$level"
+          } >> "$GITHUB_OUTPUT"
+          echo "node-switchbot: plugin requires ^$current, npm latest is $published -> $level"
+
+      - name: Close an update pull request that latest has caught up with
+        if: steps.check.outputs.level == 'none'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          number=$(gh pr list --head "$BRANCH" --base latest --state open --json number --jq '.[0].number // empty')
+          if [[ -n "$number" ]]; then
+            gh pr close "$number" --delete-branch \
+              --comment "latest already requires node-switchbot ^${{ steps.check.outputs.current }}, the newest release."
+          fi
+
+      - name: Find an open update pull request
+        if: steps.check.outputs.level != 'none'
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          number=$(gh pr list --head "$BRANCH" --base latest --state open --json number --jq '.[0].number // empty')
+          title=$(gh pr list --head "$BRANCH" --base latest --state open --json title --jq '.[0].title // empty')
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+          # Skip when the open pull request already proposes this version
+          if [[ -n "$number" && "$title" == *" ${{ steps.check.outputs.published }}" ]]; then
+            echo "uptodate=true" >> "$GITHUB_OUTPUT"
+            echo "Pull request #$number already updates to ${{ steps.check.outputs.published }}"
+          fi
 
       - name: Update node-switchbot
-        if: steps.check.outputs.result == 'update'
+        if: steps.check.outputs.level != 'none' && steps.pr.outputs.uptodate != 'true'
         run: |
+          git switch -C "$BRANCH"
           npm pkg set "dependencies.node-switchbot=^${{ steps.check.outputs.published }}"
           npx -y npm@11 install --package-lock-only --ignore-scripts
+          # Only the dependency may change: never the plugin's own version
+          before=$(git show HEAD:package.json | node -p "JSON.parse(require('fs').readFileSync(0)).version")
+          after=$(node -p "require('./package.json').version")
+          test "$before" = "$after"
           git diff --stat
 
-      - name: Install, build, test and lint
-        if: steps.check.outputs.result == 'update'
+      - name: Build, test and lint
+        if: steps.check.outputs.level != 'none' && steps.pr.outputs.uptodate != 'true'
+        id: verify
+        continue-on-error: true
         run: |
           npm ci --legacy-peer-deps
           npm run build
           npm test
           npm run lint
 
-      - name: Commit to latest
-        if: steps.check.outputs.result == 'update'
+      - name: Push the update branch
+        if: steps.check.outputs.level != 'none' && steps.pr.outputs.uptodate != 'true'
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           # Commit only the dependency change; the build regenerates other files
           git add package.json package-lock.json
-          git commit -m "chore(deps): update node-switchbot to ${{ steps.check.outputs.published }}" \
-            -m "Automatic update after node-switchbot ${{ steps.check.outputs.published }} was published."
-          git push origin HEAD:latest
+          git commit -m "fix(deps): update node-switchbot to ${{ steps.check.outputs.published }}"
+          # The branch belongs to this workflow; replace it with an update from current latest
+          git push --force origin "$BRANCH"
 
-      - name: Publish a plugin release
-        if: steps.check.outputs.result == 'update'
+      - name: Open or update the pull request
+        if: steps.check.outputs.level != 'none' && steps.pr.outputs.uptodate != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          PUBLISHED: ${{ steps.check.outputs.published }}
+          CURRENT: ${{ steps.check.outputs.current }}
+          LEVEL: ${{ steps.check.outputs.level }}
+          VERIFY: ${{ steps.verify.outcome }}
+          NUMBER: ${{ steps.pr.outputs.number }}
         run: |
-          gh workflow run release.yml --ref latest -f release_type=latest -f is_esm=true -f version_bump=patch
-          {
-            echo "### Updated node-switchbot to ${{ steps.check.outputs.published }}"
-            echo
-            echo "Committed to latest and started the Release workflow for a patch release."
-          } >> "$GITHUB_STEP_SUMMARY"
+          title="fix(deps): update node-switchbot to $PUBLISHED"
+          if [[ "$VERIFY" == "success" ]]; then
+            checks="Build, test and lint passed in the update workflow."
+          else
+            checks="**Build, test or lint failed** in the [update workflow run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID). The plugin needs changes before this can be merged."
+          fi
+          major_note=""
+          if [[ "$LEVEL" == "major" ]]; then
+            major_note=$'\n\n'"**This is a new major version of node-switchbot.** Read its release notes for breaking changes, and test it (or add plugin changes to this branch) before merging."
+          fi
+          body=$(cat <<EOF
+          Updates \`node-switchbot\` from \`^$CURRENT\` to \`^$PUBLISHED\` (a **$LEVEL** update).
+
+          - [node-switchbot v$PUBLISHED release notes](https://github.com/OpenWonderLabs/node-switchbot/releases/tag/v$PUBLISHED)
+          - Changes only the \`node-switchbot\` range in \`package.json\` and its entries in \`package-lock.json\`. The plugin's own \`version\` is set by the release workflow when this is merged.
+          - Labelled \`$LEVEL\`: merging publishes a $LEVEL plugin release. Change the label before merging for a different kind of release.
+
+          $checks$major_note
+
+          _Opened by the "Update node-switchbot" workflow. If a newer node-switchbot is published before this is merged, this pull request is updated to it._
+          EOF
+          )
+          # Create the labels only if missing; never change existing ones
+          for label in "$LEVEL" dependencies; do
+            gh label create "$label" >/dev/null 2>&1 || true
+          done
+          if [[ -n "$NUMBER" ]]; then
+            gh pr edit "$NUMBER" --title "$title" --body "$body"
+            for old in patch minor major; do
+              [[ "$old" == "$LEVEL" ]] || gh pr edit "$NUMBER" --remove-label "$old" >/dev/null 2>&1 || true
+            done
+            gh pr edit "$NUMBER" --add-label "$LEVEL" --add-label dependencies
+            echo "Updated pull request #$NUMBER" >> "$GITHUB_STEP_SUMMARY"
+          else
+            url=$(gh pr create --base latest --head "$BRANCH" --title "$title" --body "$body" \
+              --label "$LEVEL" --label dependencies)
+            echo "Opened $url" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Run CI on the pull request
+        if: steps.check.outputs.level != 'none' && steps.pr.outputs.uptodate != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Pull requests opened with GITHUB_TOKEN do not start CI on their own; workflow_dispatch does,
+        # and its checks show on the pull request's commit.
+        run: gh workflow run ci.yml --ref "$BRANCH"

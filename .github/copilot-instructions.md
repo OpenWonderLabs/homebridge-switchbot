@@ -154,12 +154,21 @@ node -p "const v=require('./package.json').version.split('.'); v[2]=parseInt(v[2
 
 node-switchbot tracks [pySwitchbot](https://github.com/sblibs/pySwitchbot).
 
-**Version bumps are automatic within a major version.** `.github/workflows/node-switchbot-update.yml`
-checks npm hourly. When node-switchbot publishes a newer release with the same major version, it
-updates `package.json` and `package-lock.json` on `latest`, runs build, test and lint, and starts
-`release.yml` for a patch release. Do not open PRs that only bump node-switchbot within a major;
-Dependabot ignores it for the same reason. A new **major** version is only flagged in that
-workflow's run summary: update it by hand in a PR to a beta branch.
+**Version updates come as pull requests.** `.github/workflows/node-switchbot-update.yml` checks
+npm hourly. When node-switchbot publishes a newer release (patch, minor or major), it opens a pull
+request to `latest`, from the `deps/node-switchbot` branch. The pull request:
+
+- changes only the `node-switchbot` range in `package.json` and its `package-lock.json` entries,
+  never the plugin's own `version` (the release workflow sets that when it publishes);
+- is labelled `patch`, `minor` or `major` to match the node-switchbot change, which sets the kind
+  of plugin release that merging it publishes;
+- is updated if a newer node-switchbot comes out before it is merged, and closed if `latest`
+  catches up some other way.
+
+The maintainer reviews and merges it. Do not open separate pull requests that only bump
+node-switchbot; Dependabot ignores it for the same reason. For a node-switchbot major (or any
+release) that needs plugin changes, push them to the `deps/node-switchbot` branch or open a
+follow-up pull request.
 
 When node-switchbot ships something the plugin must change code to use, this repo needs a
 follow-up PR:
@@ -171,9 +180,9 @@ follow-up PR:
    accessory behaviour in `src/devices/genericDevice.ts`.
 3. Make sure no existing saved `configDeviceType` stops resolving (normalization map or
    `src/homebridge-ui/utils/device-migration.ts`).
-4. Only if the change needs a node-switchbot version newer than `latest` has (a new major, or
-   code that must ship with the bump), bump `node-switchbot` in `package.json` yourself, and only
-   to a version already published on npm.
+4. The version bump itself comes from the `deps/node-switchbot` pull request. Bump
+   `node-switchbot` in `package.json` yourself only if the plugin change must ship together with
+   it, and only to a version already published on npm.
 5. Add `createDevice` tests under `test/device/` asserting each affected type's accessory class.
 6. Run build, test and lint; commit the regenerated `config.schema.json` if `DEVICE_TYPES` changed.
 
@@ -254,9 +263,9 @@ npm run lint      # eslint (src, test, UI html/js) then tsc --noEmit
   and PRs to `latest`/`beta-*`.
 - `.github/workflows/release.yml`: pushes to `beta-*` publish a beta to npm; pushes to `latest`
   publish a stable release. It can also be started by hand (`workflow_dispatch`).
-- `.github/workflows/node-switchbot-update.yml`: hourly, updates node-switchbot to its newest
-  release in the same major on `latest` and starts `release.yml` (see "Following node-switchbot
-  Changes"). Run it by hand from the Actions tab to pick up a release immediately.
+- `.github/workflows/node-switchbot-update.yml`: hourly, opens or updates a pull request that moves
+  node-switchbot to its newest release (see "Following node-switchbot Changes"), and starts
+  `ci.yml` on it. Run it by hand from the Actions tab to check immediately.
 
 ## Complete Workflow Examples
 
