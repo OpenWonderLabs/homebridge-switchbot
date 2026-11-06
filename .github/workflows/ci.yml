@@ -5,6 +5,8 @@ on:
     branches: ["main", "latest", "beta-*"]
   pull_request:
     branches: ["main", "latest", "beta-*"]
+  # Started by node-switchbot-update.yml: pull requests it opens with GITHUB_TOKEN don't trigger CI
+  workflow_dispatch:
 
 permissions:
   contents: read
