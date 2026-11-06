@@ -10,6 +10,9 @@ updates:
     target-branch: 'beta-*.*.*'
     schedule:
       interval: 'daily'
+    ignore:
+      # Updated and released automatically by .github/workflows/node-switchbot-update.yml
+      - dependency-name: 'node-switchbot'
   - package-ecosystem: 'github-actions' # See documentation for possible values
     directory: '/' # Location of package manifests
     target-branch: 'beta-*.*.*'
