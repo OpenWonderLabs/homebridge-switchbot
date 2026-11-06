@@ -47,4 +47,11 @@ describe('product-specific model identities', () => {
     const result = await createDevice({ id: `id-${type}`, type } as any, dummyConfig as any, false)
     expect(result.instance.constructor.name).toBe(className)
   })
+
+  // OpenAPI-only light strip (node-switchbot 6.0.4: WoRGBICWWStripLight)
+  it('normalizes Permanent Outdoor Lights and creates a light strip', async () => {
+    expect(normalizeDeviceType('permanent outdoor lights')).toBe('Permanent Outdoor Lights')
+    const result = await createDevice({ id: 'id-pol', type: 'Permanent Outdoor Lights' } as any, dummyConfig as any, false)
+    expect(result.instance.constructor.name).toBe('LightStripDevice')
+  })
 })

@@ -1096,7 +1096,7 @@ export function normalizeTypeForMatter(typeValue: string | undefined | null): st
   }
 
   // Light variants
-  if (['strip light', 'strip light 3', 'rgbic neon rope light', 'rgbic neon wire rope light', 'rgbicww floor lamp', 'rgbicww strip light'].includes(raw)) {
+  if (['strip light', 'strip light 3', 'rgbic neon rope light', 'rgbic neon wire rope light', 'rgbicww floor lamp', 'rgbicww strip light', 'permanent outdoor lights'].includes(raw)) {
     return 'lightstrip'
   }
   if (['color bulb', 'ceiling light', 'ceiling light pro', 'candle warmer lamp', 'floor lamp'].includes(raw)) {
