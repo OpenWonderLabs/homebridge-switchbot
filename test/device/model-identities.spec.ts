@@ -54,4 +54,20 @@ describe('product-specific model identities', () => {
     const result = await createDevice({ id: 'id-pol', type: 'Permanent Outdoor Lights' } as any, dummyConfig as any, false)
     expect(result.instance.constructor.name).toBe('LightStripDevice')
   })
+
+  // pySwitchbot 3.2.0-3.8.1 products (node-switchbot 6.1.0)
+  it.each([
+    ['Lock Nano', 'Lock Nano', 'LockDevice'],
+    ['UWB Lock', 'UWB Lock', 'LockDevice'],
+    ['Lock Ultra Max', 'Smart Lock Ultra Max', 'LockDevice'],
+    ['Smart Lock Ultra Max', 'Smart Lock Ultra Max', 'LockDevice'],
+    ['Lock Ultra', 'Smart Lock Ultra', 'LockDevice'],
+    ['Plug Mini (IT)', 'Plug Mini (IT)', 'PlugMiniDevice'],
+    ['Outdoor Plug (EU)', 'Outdoor Plug (EU)', 'PlugMiniDevice'],
+    ['Hub 4', 'Hub 4', 'GenericDevice'],
+  ])('normalizes %s to %s and creates a %s', async (type, canonical, className) => {
+    expect(normalizeDeviceType(type)).toBe(canonical)
+    const result = await createDevice({ id: `id-${type}`, type } as any, dummyConfig as any, false)
+    expect(result.instance.constructor.name).toBe(className)
+  })
 })
