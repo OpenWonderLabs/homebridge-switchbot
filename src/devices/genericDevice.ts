@@ -788,15 +788,15 @@ export class CurtainDevice extends GenericDevice {
   private lastAdvertisement?: object
   private positionBeforeCommand?: number
 
-  private clampHomeKitPosition(position: number): number {
+  protected clampHomeKitPosition(position: number): number {
     return Math.max(0, Math.min(100, Math.round(Number(position))))
   }
 
-  private toHomeKitPosition(switchBotPosition: number): number {
+  protected toHomeKitPosition(switchBotPosition: number): number {
     return 100 - this.clampHomeKitPosition(switchBotPosition)
   }
 
-  private toSwitchBotPosition(homeKitPosition: number): number {
+  protected toSwitchBotPosition(homeKitPosition: number): number {
     return 100 - this.clampHomeKitPosition(homeKitPosition)
   }
 
@@ -1856,7 +1856,37 @@ export class PlugDevice extends GenericDevice {
 
 export class PlugMiniDevice extends PlugDevice {}
 
-export class BlindTiltDevice extends CurtainDevice {}
+/**
+ * Blind Tilt: a WindowCovering whose position is how far the slats are open.
+ *
+ * node-switchbot reports and sets the tilt position as 0 = closed down, 50 = open,
+ * 100 = closed up (pySwitchbot's scale, which node-switchbot also uses over the OpenAPI,
+ * converting `setPosition` to `down;N` / `up;N`). HomeKit's 0-100 runs from closed to open, so 50 maps to 100%
+ * and both closed ends map to 0%. When the blind closes again it closes towards the
+ * side it was last reported on, down unless it was last seen tilted up.
+ */
+export class BlindTiltDevice extends CurtainDevice {
+  private closeSide: 'up' | 'down' = 'down'
+
+  protected override toHomeKitPosition(tiltPosition: number): number {
+    const tilt = this.clampHomeKitPosition(tiltPosition)
+    if (tilt > 50) {
+      this.closeSide = 'up'
+    } else if (tilt < 50) {
+      this.closeSide = 'down'
+    }
+    return tilt <= 50
+      ? tilt * 2
+      : (100 - tilt) * 2
+  }
+
+  protected override toSwitchBotPosition(homeKitPosition: number): number {
+    const half = Math.round(this.clampHomeKitPosition(homeKitPosition) / 2)
+    return this.closeSide === 'up'
+      ? 100 - half
+      : half
+  }
+}
 export class Curtain3Device extends CurtainDevice {}
 export class RollerShadeDevice extends CurtainDevice {}
 

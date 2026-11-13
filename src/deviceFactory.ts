@@ -109,7 +109,9 @@ const DEVICE_CLASS_MAP: Record<string, any> = {
   'humidifier2': HumidifierDevice,
   'temperature': TemperatureSensorDevice,
   'relay switch 1': RelaySwitchDevice,
+  'relay': RelaySwitchDevice, // normalizeTypeForMatter('Relay Switch 1' / '1PM')
   'blind tilt': BlindTiltDevice,
+  'blindtilt': BlindTiltDevice, // normalizeTypeForMatter('Blind Tilt')
   'worollershade': RollerShadeDevice,
   'wo rollershade': RollerShadeDevice,
   'rollershade': RollerShadeDevice,
