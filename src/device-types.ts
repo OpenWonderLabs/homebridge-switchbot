@@ -7,9 +7,12 @@ export const DEVICE_TYPES = {
     'Keypad Vision Pro',
     'Lock Vision Pro',
     'Lock Lite',
+    'Lock Nano',
     'Smart Lock',
     'Smart Lock Pro',
     'Smart Lock Ultra',
+    'Smart Lock Ultra Max',
+    'UWB Lock',
     'Video Doorbell',
   ],
   'Sensors': ['Contact Sensor', 'Motion Sensor', 'Presence Sensor', 'Water Detector'],
@@ -49,8 +52,10 @@ export const DEVICE_TYPES = {
   ],
   'Plugs & Switches': [
     'Garage Door Opener',
+    'Outdoor Plug (EU)',
     'Plug',
     'Plug Mini (EU)',
+    'Plug Mini (IT)',
     'Plug Mini (JP)',
     'Plug Mini (US)',
     'Relay Switch 1',
@@ -68,7 +73,7 @@ export const DEVICE_TYPES = {
     'Robot Vacuum Cleaner S10',
     'Robot Vacuum Cleaner S20',
   ],
-  'Hubs': ['AI Hub', 'Hub', 'Hub 2', 'Hub 3', 'Hub Mini', 'Hub Plus'],
+  'Hubs': ['AI Hub', 'Hub', 'Hub 2', 'Hub 3', 'Hub 4', 'Hub Mini', 'Hub Plus'],
   'Cameras': [
     'Indoor Cam',
     'Pan/Tilt Cam',
@@ -99,6 +104,8 @@ export const DEVICE_TYPE_NORMALIZATION_MAP: Record<string, string> = {
   // --- node-switchbot v4 normalization additions ---
   'hub mini': 'Hub Mini',
   'hub 3': 'Hub 3',
+  'hub 4': 'Hub 4',
+  'hub4': 'Hub 4',
   'keypad': 'Keypad',
   'plug mini': 'Plug Mini (US)', // fallback to US if region not specified
   'art frame': 'AI Art Frame',
@@ -125,6 +132,11 @@ export const DEVICE_TYPE_NORMALIZATION_MAP: Record<string, string> = {
   'air purifier voc': 'Air Purifier VOC',
   'air purifier table voc': 'Air Purifier Table VOC',
   'plug mini (eu)': 'Plug Mini (EU)',
+  'plug mini (it)': 'Plug Mini (IT)',
+  'plug mini it': 'Plug Mini (IT)',
+  'outdoor plug (eu)': 'Outdoor Plug (EU)',
+  'outdoor plug eu': 'Outdoor Plug (EU)',
+  'outdoor plug': 'Outdoor Plug (EU)',
   // Only last occurrence for each key is kept above. Removed duplicates here.
 
   // Climate control conversions
@@ -136,6 +148,13 @@ export const DEVICE_TYPE_NORMALIZATION_MAP: Record<string, string> = {
   'smart lock': 'Smart Lock',
   'smart lock pro': 'Smart Lock Pro',
   'smart lock ultra': 'Smart Lock Ultra',
+  'lock ultra': 'Smart Lock Ultra', // deviceType in the Lock Ultra status response
+  'smart lock ultra max': 'Smart Lock Ultra Max',
+  'lock ultra max': 'Smart Lock Ultra Max',
+  'uwb lock': 'UWB Lock',
+  'smart lock uwb': 'UWB Lock',
+  'lock nano': 'Lock Nano',
+  'smart lock nano': 'Lock Nano',
   'keypad touch': 'Keypad Touch',
   'keypad vision': 'Keypad Vision',
   'keypad vision pro': 'Keypad Vision Pro',

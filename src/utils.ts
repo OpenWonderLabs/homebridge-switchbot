@@ -1071,7 +1071,7 @@ export function normalizeTypeForMatter(typeValue: string | undefined | null): st
   }
 
   // Plug variants
-  if (['plug mini (jp)', 'plug mini (us)', 'plug mini (eu)'].includes(raw)) {
+  if (['plug mini (jp)', 'plug mini (us)', 'plug mini (eu)', 'plug mini (it)', 'outdoor plug (eu)'].includes(raw)) {
     return 'plug'
   }
 
@@ -1112,7 +1112,7 @@ export function normalizeTypeForMatter(typeValue: string | undefined | null): st
   }
 
   // Lock variants
-  if (['smart lock', 'smart lock pro', 'smart lock ultra', 'lock lite', 'keypad', 'keypad touch', 'keypad vision', 'keypad vision pro', 'lock vision pro'].includes(raw)) {
+  if (['smart lock', 'smart lock pro', 'smart lock ultra', 'smart lock ultra max', 'uwb lock', 'lock nano', 'lock lite', 'keypad', 'keypad touch', 'keypad vision', 'keypad vision pro', 'lock vision pro'].includes(raw)) {
     return 'lock'
   }
 
