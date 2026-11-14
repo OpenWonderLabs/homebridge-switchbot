@@ -24,6 +24,33 @@
 
 ## Configuration
 
+- ### If using OpenAPI Connection
+  1. Download SwitchBot App on App Store or Google Play Store
+  2. Register a SwitchBot account and log in into your account
+  3. Generate an Token within the App
+     - Click Bottom Profile Tab
+     - Click Preference
+     - Click App version 10 Times, this will enable Developer Options
+     - Click Developer Options
+     - Click Copy `token` to Clipboard
+  4. Input your `token` into the config parameter
+  5. Generate an Secret within the App
+     - Click Bottom Profile Tab
+     - Click Preference
+     - Click App version 10 Times, this will enable Developer Options
+     - Click Developer Options
+     - Click Copy `secret` to Clipboard
+  6. Input your `secret` into the config parameter
+- ### If using BLE Connection
+  1. Download SwitchBot App on App Store or Google Play Store
+  2. Register a SwitchBot account and log in into your account
+  3. Click on Device wanting to connect too plugin
+     - Click the Settings Gear
+     - Click Device Info
+     - Copy BLE Mac aka `deviceId`
+  4. Input your `deviceId` into the Device Config
+
+
 ### OpenAPI Polling/Rate Advanced Settings (UI)
 
 You can now configure global OpenAPI polling and rate-limiting options directly from the Homebridge UI:
