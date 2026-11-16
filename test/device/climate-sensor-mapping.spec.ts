@@ -10,15 +10,37 @@ const log = {
   debug: vi.fn(),
 }
 
-describe('HAP climate sensor mapping', () => {
+describe('hap climate sensor mapping', () => {
   it.each([
-    ['WoIOSensor', MeterDevice, ['TemperatureSensor', 'HumiditySensor', 'Battery']],
-    ['woiosensor', MeterDevice, ['TemperatureSensor', 'HumiditySensor', 'Battery']],
-    ['Hub 2', Hub2Device, ['TemperatureSensor', 'HumiditySensor']],
-    ['hub 2', Hub2Device, ['TemperatureSensor', 'HumiditySensor']],
+    [
+      'WoIOSensor',
+      MeterDevice,
+      ['TemperatureSensor', 'HumiditySensor', 'Battery'],
+    ],
+    [
+      'woiosensor',
+      MeterDevice,
+      ['TemperatureSensor', 'HumiditySensor', 'Battery'],
+    ],
+    [
+      'Hub 2',
+      Hub2Device,
+      ['TemperatureSensor', 'HumiditySensor'],
+    ],
+    [
+      'hub 2',
+      Hub2Device,
+      ['TemperatureSensor', 'HumiditySensor'],
+    ],
   ] as const)('exposes sensor services for %s', async (type, DeviceClass, expectedServices) => {
     const created = await createDevice(
-      { id: 'sensor', type, deviceType: type, name: 'Sensor', log } as any,
+      {
+        id: 'sensor',
+        type,
+        deviceType: type,
+        name: 'Sensor',
+        log,
+      } as any,
       { log, enableBLE: false, _client: {} } as any,
       false,
     )
@@ -45,8 +67,7 @@ describe('HAP climate sensor mapping', () => {
       if (battery) {
         await expect(battery.characteristics.BatteryLevel.get()).resolves.toBe(75)
       }
-    }
-    finally {
+    } finally {
       getState.mockRestore()
       await created.instance.destroy()
     }
