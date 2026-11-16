@@ -56,7 +56,7 @@ const DEVICE_CLASS_MAP: Record<string, any> = {
   // Canonical, normalized device type keys (lowercase, mapped to device classes)
   'video doorbell': GenericDevice,
   'smart radiator thermostat': GenericDevice,
-  'woiosensor': GenericDevice,
+  'woiosensor': MeterDevice,
   'garage door opener': GenericDevice,
   'air purifier table pm2.5': GenericDevice,
   'air purifier voc': GenericDevice,
