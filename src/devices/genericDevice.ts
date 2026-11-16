@@ -1890,8 +1890,6 @@ export class BlindTiltDevice extends CurtainDevice {
 export class Curtain3Device extends CurtainDevice {}
 export class RollerShadeDevice extends CurtainDevice {}
 
-export class Hub2Device extends GenericDevice {}
-
 /** Default ppm at or above which HomeKit is told the CO2 level is abnormal. */
 const CO2_ABNORMAL_PPM_DEFAULT = 1000
 
@@ -1992,6 +1990,15 @@ export class MeterDevice extends GenericDevice {
     })
 
     return { services }
+  }
+}
+
+/** Hub 2 reports temperature and humidity but has no battery. */
+export class Hub2Device extends MeterDevice {
+  createHAPAccessory(api: any) {
+    const descriptor = super.createHAPAccessory(api)
+    descriptor.services = descriptor.services.filter(service => service.type !== 'Battery')
+    return descriptor
   }
 }
 
