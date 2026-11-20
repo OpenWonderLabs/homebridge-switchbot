@@ -1058,7 +1058,7 @@ export function normalizeTypeForMatter(typeValue: string | undefined | null): st
   }
 
   // Window covering variants
-  if (['curtain', 'curtain3', 'rollershade', 'roller shade', 'worollershade', 'wo rollershade'].includes(raw)) {
+  if (['curtain', 'curtain3', 'curtain4', 'curtain 4', 'rollershade', 'roller shade', 'worollershade', 'wo rollershade'].includes(raw)) {
     return 'curtain'
   }
 
