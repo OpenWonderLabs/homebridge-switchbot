@@ -8,6 +8,6 @@ targeting, following node-switchbot changes, commands, structure and pitfalls:
 ## Claude-specific notes
 
 - Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`).
-- If the right target branch is unclear, ask before opening the PR.
+- Target `latest`; never a `beta-*` branch.
 - PR description: what changed, why (link the node-switchbot PR/release), and any config migration
   users need.
