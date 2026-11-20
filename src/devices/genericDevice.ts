@@ -531,10 +531,12 @@ export class GenericDevice extends DeviceBase {
         type: 'OccupancySensing',
         // No clusterId, not present in MATTER_CLUSTER_IDS
         attributes: {
+          // Occupancy is a bitmap: matter.js expects { occupied }, not 1/0
           occupancy: {
-            read: async () => (await this.getState()).moveDetected === true || (await this.getState()).motion === true
-              ? 1
-              : 0,
+            read: async () => {
+              const s = await this.getState()
+              return { occupied: s?.moveDetected === true || s?.motion === true }
+            },
           },
         },
       })
