@@ -47,6 +47,7 @@ const DEVICE_CLASS_MAP: Record<string, any> = {
   'bot': BotDevice,
   'curtain': CurtainDevice,
   'curtain3': Curtain3Device,
+  'curtain4': Curtain3Device, // OpenAPI 'Curtain4': same commands as the Curtain 3
   'fan': FanDevice,
   'light': LightDevice,
   'lightstrip': LightStripDevice,
@@ -79,6 +80,7 @@ const DEVICE_CLASS_MAP: Record<string, any> = {
   'k10+ pro': WoSweeperDevice,
   'robot vacuum cleaner k10+ pro combo': WoSweeperDevice,
   'robot vacuum cleaner k11+': WoSweeperDevice,
+  'robot vacuum cleaner k11 plus pro': WoSweeperDevice,
   'robot vacuum cleaner k20 plus pro': WoSweeperDevice,
   'ai hub': GenericDevice,
   'hub': GenericDevice,
@@ -146,6 +148,7 @@ const DEVICE_CLASS_MAP: Record<string, any> = {
   'robot vacuum cleaner s1 plus': VacuumDevice,
   'robot vacuum cleaner s10': VacuumDevice,
   'robot vacuum cleaner s20': VacuumDevice,
+  'robot vacuum cleaner s30': VacuumDevice,
 }
 
 function classForType(type: string) {

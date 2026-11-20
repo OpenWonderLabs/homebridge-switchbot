@@ -65,6 +65,11 @@ describe('product-specific model identities', () => {
     ['Plug Mini (IT)', 'Plug Mini (IT)', 'PlugMiniDevice'],
     ['Outdoor Plug (EU)', 'Outdoor Plug (EU)', 'PlugMiniDevice'],
     ['Hub 4', 'Hub 4', 'GenericDevice'],
+    // SwitchBotAPI November 2026 types (node-switchbot 6.1.4)
+    ['Curtain4', 'Curtain4', 'Curtain3Device'],
+    ['Curtain 4', 'Curtain4', 'Curtain3Device'],
+    ['Robot Vacuum Cleaner S30', 'Robot Vacuum Cleaner S30', 'VacuumDevice'],
+    ['Robot Vacuum Cleaner K11 Plus Pro', 'Robot Vacuum Cleaner K11 Plus Pro', 'WoSweeperDevice'],
   ])('normalizes %s to %s and creates a %s', async (type, canonical, className) => {
     expect(normalizeDeviceType(type)).toBe(canonical)
     const result = await createDevice({ id: `id-${type}`, type } as any, dummyConfig as any, false)

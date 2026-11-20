@@ -1,5 +1,5 @@
 export const DEVICE_TYPES = {
-  'Window Coverings': ['Blind Tilt', 'Curtain', 'Curtain3', 'Roller Shade'],
+  'Window Coverings': ['Blind Tilt', 'Curtain', 'Curtain3', 'Curtain4', 'Roller Shade'],
   'Locks & Access': [
     'Keypad',
     'Keypad Touch',
@@ -67,11 +67,13 @@ export const DEVICE_TYPES = {
     'K10+ Pro',
     'Robot Vacuum Cleaner K10+ Pro Combo',
     'Robot Vacuum Cleaner K11+',
+    'Robot Vacuum Cleaner K11 Plus Pro',
     'Robot Vacuum Cleaner K20 Plus Pro',
     'Robot Vacuum Cleaner S1',
     'Robot Vacuum Cleaner S1 Plus',
     'Robot Vacuum Cleaner S10',
     'Robot Vacuum Cleaner S20',
+    'Robot Vacuum Cleaner S30',
   ],
   'Hubs': ['AI Hub', 'Hub', 'Hub 2', 'Hub 3', 'Hub 4', 'Hub Mini', 'Hub Plus'],
   'Cameras': [
@@ -178,6 +180,8 @@ export const DEVICE_TYPE_NORMALIZATION_MAP: Record<string, string> = {
   'robot vacuum cleaner s1 plus': 'Robot Vacuum Cleaner S1 Plus',
   'robot vacuum cleaner s10': 'Robot Vacuum Cleaner S10',
   'robot vacuum cleaner s20': 'Robot Vacuum Cleaner S20',
+  'robot vacuum cleaner s30': 'Robot Vacuum Cleaner S30',
+  'robot vacuum cleaner k11 plus pro': 'Robot Vacuum Cleaner K11 Plus Pro',
   'robot vacuum cleaner k10+ pro combo': 'Robot Vacuum Cleaner K10+ Pro Combo',
   'robot vacuum cleaner k11+': 'Robot Vacuum Cleaner K11+',
   'robot vacuum cleaner k20 plus pro': 'Robot Vacuum Cleaner K20 Plus Pro',
@@ -187,6 +191,8 @@ export const DEVICE_TYPE_NORMALIZATION_MAP: Record<string, string> = {
   'blind tilt': 'Blind Tilt',
   'roller shade': 'Roller Shade',
   'curtain3': 'Curtain3',
+  'curtain4': 'Curtain4',
+  'curtain 4': 'Curtain4',
   'hub 2': 'Hub 2',
   'meterplus': 'MeterPlus',
   'meterpro': 'MeterPro',

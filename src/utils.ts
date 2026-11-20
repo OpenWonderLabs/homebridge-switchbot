@@ -196,7 +196,8 @@ export const DEVICE_MATTER_CLUSTERS: Record<string, any> = {
   }, // LockMechanism → DoorLock
   motion: {
     occupancySensing: {
-      occupancy: 0,
+      // Occupancy is a bitmap; matter.js expects { occupied } rather than a number
+      occupancy: { occupied: false },
       occupancySensorType: 0,
     },
   }, // MotionSensor → OccupancySensing
@@ -227,14 +228,10 @@ export const DEVICE_MATTER_CLUSTERS: Record<string, any> = {
 
   // Switch/Outlet devices
   relay: { onOff: { onOff: false } }, // Switch → OnOff
-  plug: {
-    onOff: { onOff: false },
-    electricalMeasurement: {
-      activePower: 0,
-      rmsCurrent: 0,
-      rmsVoltage: 0,
-    },
-  }, // Outlet → OnOff + ElectricalMeasurement (for PM models)
+  // Outlet → OnOff. There is no Matter "electricalMeasurement" cluster (Homebridge dropped it and
+  // warns). Power readings would need electricalPowerMeasurement, but nothing updates it yet, so
+  // declaring it would show a permanent 0 W / no reading on every plug, metering or not.
+  plug: { onOff: { onOff: false } },
 
   // Sensors
   meter: {
@@ -1061,7 +1058,7 @@ export function normalizeTypeForMatter(typeValue: string | undefined | null): st
   }
 
   // Window covering variants
-  if (['curtain', 'curtain3', 'rollershade', 'roller shade', 'worollershade', 'wo rollershade'].includes(raw)) {
+  if (['curtain', 'curtain3', 'curtain4', 'curtain 4', 'rollershade', 'roller shade', 'worollershade', 'wo rollershade'].includes(raw)) {
     return 'curtain'
   }
 
