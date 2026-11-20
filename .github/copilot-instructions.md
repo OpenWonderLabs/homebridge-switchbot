@@ -41,114 +41,15 @@ If references conflict:
 2. Keep existing plugin behavior unless a clear bug is identified.
 3. Document any intentional deviation in PR notes.
 
-## Branch Targeting Strategy
+## Branch Targeting
 
-When creating pull requests, ALWAYS follow this branch targeting strategy:
+Branch from `latest` and open every pull request against `latest`. Do not create, target or push
+to `beta-*` branches. Merging to `latest` publishes a stable release; if something needs fixing
+afterwards, release a patch from `latest`.
 
-1. **Primary Target:** Look for branches that start with "beta-" (e.g., `beta-4.3.2`, `beta-4.4.0`)
-   - If a beta branch exists, target the most recent beta branch for your PR
-   - Beta branches are used for testing and staging changes before they go to the main branch
-
-2. **Beta Branch Creation:** If no beta branches exist, create one based on the next possible version
-   - Parse the current version from `package.json` (e.g., "4.3.1")
-   - Determine version increment type using issue/PR labels (patch/minor/major)
-   - Calculate the appropriate next version based on detected labels
-   - Create a new beta branch with the format `beta-X.Y.Z` (e.g., `beta-4.3.2`)
-   - Base the new beta branch on the `latest` branch
-   - Push the new beta branch to origin and target it for the PR
-
-3. **Fallback Target:** Only if beta branch creation fails, target the `latest` branch
-   - The `latest` branch is the main development branch when no beta releases are in progress
-
-4. **Branch Detection and Creation:** Use these methods to check and create branches:
-   - **Detection:** GitHub API: Use `github-mcp-server-list_branches` to get all branches and filter for "beta-" prefix
-   - **Detection:** Git command: `git ls-remote --heads origin | grep beta | sort -V | tail -1` to find the latest beta branch
-   - **Version parsing:** Extract version from package.json: `node -p "require('./package.json').version"`
-   - **Label Detection:** Check for version increment labels on the issue/PR:
-     - Use GitHub API to get issue/PR labels
-     - Look for labels: `patch`, `minor`, `major`
-     - These labels should be set before assigning the issue to Copilot
-   - **Version Increment Logic:** Choose increment type based on detected labels:
-     - **patch label found:** `node -p "const v=require('./package.json').version.split('.'); v[2]=parseInt(v[2])+1; v.join('.')"` (4.3.1 → 4.3.2)
-     - **minor label found:** `node -p "const v=require('./package.json').version.split('.'); v[1]=parseInt(v[1])+1; v[2]='0'; v.join('.')"` (4.3.1 → 4.4.0)
-     - **major label found:** `node -p "const v=require('./package.json').version.split('.'); v[0]=parseInt(v[0])+1; v[1]='0'; v[2]='0'; v.join('.')"` (4.3.1 → 5.0.0)
-     - **No relevant labels:** Default to patch increment as fallback
-     - **Multiple increment labels:** Use highest priority (major > minor > patch)
-   - **Label-Based Beta Branch Creation:**
-     ```bash
-     # Detect version increment type from issue/PR labels
-     # Use GitHub API: github-mcp-server-get_issue or github-mcp-server-get_pull_request
-     # Check labels array for: patch, minor, major
-     
-     # Calculate next version based on detected labels
-     if [[ labels contains "major" ]]; then
-       NEXT_VERSION=$(node -p "const v=require('./package.json').version.split('.'); v[0]=parseInt(v[0])+1; v[1]='0'; v[2]='0'; v.join('.')")
-     elif [[ labels contains "minor" ]]; then
-       NEXT_VERSION=$(node -p "const v=require('./package.json').version.split('.'); v[1]=parseInt(v[1])+1; v[2]='0'; v.join('.')")
-     else
-       # Default to patch increment (includes when "patch" label found or no labels)
-       NEXT_VERSION=$(node -p "const v=require('./package.json').version.split('.'); v[2]=parseInt(v[2])+1; v.join('.')")
-     fi
-     
-     BETA_BRANCH="beta-${NEXT_VERSION}"
-     
-     # Create and push the beta branch from latest
-     git fetch origin
-     git checkout -b "${BETA_BRANCH}" origin/latest
-     git push origin "${BETA_BRANCH}"
-     ```
-   - Always verify the target branch exists before creating the PR
-
-**NEVER target other branches** unless specifically instructed, and avoid targeting:
-- Individual feature branches (copilot/*, fix/*, etc.)
-- Release branches that are not beta branches
-- The main branch directly
-
-This ensures proper workflow where changes are tested in beta branches before being merged to the main development line.
-
-### Branch Targeting Validation and Troubleshooting
-
-**Before Starting Work:**
-1. **Verify Issue Labels:** Check that the assigned issue has appropriate version increment labels (`patch`, `minor`, or `major`)
-2. **Check Existing Beta Branches:** Use GitHub API or Git commands to identify current beta branches
-3. **Validate Target Branch:** Confirm the target beta branch exists or can be created successfully
-
-**Validation Commands:**
-```bash
-# Check for existing beta branches
-git ls-remote --heads origin | grep "beta-" | sort -V
-
-# Get current version for reference
-node -p "require('./package.json').version"
-
-# Example: Calculate next patch version
-node -p "const v=require('./package.json').version.split('.'); v[2]=parseInt(v[2])+1; v.join('.')"
-```
-
-**Troubleshooting Common Issues:**
-- **No version labels on issue:** Proceed with patch increment but notify in PR description
-- **Beta branch creation fails:** Fall back to targeting `latest` branch and document in PR
-- **Multiple conflicting labels:** Use highest priority (major > minor > patch) and document decision
-- **Network/API failures:** Use Git commands as fallback for branch detection
-
-### Label Requirements for Version Management
-
-**⚠️ CRITICAL REQUIREMENT:** Before assigning issues to Copilot, project maintainers **MUST** set appropriate version increment labels. This is required for proper branch targeting and version management.
-
-**Required Labels:**
-- **`patch`** - Bug fixes, documentation updates, minor improvements (4.3.1 → 4.3.2)
-- **`minor`** - New features, device support additions, non-breaking enhancements (4.3.1 → 4.4.0)  
-- **`major`** - Breaking changes, API modifications, major architectural updates (4.3.1 → 5.0.0)
-
-**Label Priority:** If multiple increment labels are present, the highest priority is used (major > minor > patch).
-
-**Fallback Behavior:** If no version increment labels are found, the system defaults to patch increment to ensure conservative version management.
-
-**Validation Process:** Copilot will:
-1. Check for required labels on the assigned issue
-2. Log a warning if no version increment labels are found
-3. Proceed with patch increment as fallback
-4. Create or target the appropriate beta branch based on version increment
+The release type comes from the merged pull request's label: `patch` (bug fixes, docs, small
+improvements), `minor` (new features or device types) or `major` (breaking changes). With no
+label it defaults to a patch. If the right label is unclear, say so in the PR description.
 
 ## Following node-switchbot Changes
 
@@ -259,39 +160,11 @@ npm run lint      # eslint (src, test, UI html/js) then tsc --noEmit
 
 ## CI/CD Integration
 
-- `.github/workflows/ci.yml`: build, test and lint on Node 22, 24 and 26 for pushes to `latest`/`beta-*`
-  and PRs to `latest`/`beta-*`.
-- `.github/workflows/release.yml`: pushes to `beta-*` publish a beta to npm; pushes to `latest`
-  publish a stable release. It can also be started by hand (`workflow_dispatch`).
+- `.github/workflows/ci.yml`: build, test and lint on Node 22, 24 and 26 for pushes and PRs to
+  `latest` (and `beta-*`, which is no longer used).
+- `.github/workflows/release.yml`: pushes to `latest` publish a stable release. It still publishes a
+  beta for pushes to `beta-*`, but those branches are no longer used. It can also be started by
+  hand (`workflow_dispatch`).
 - `.github/workflows/node-switchbot-update.yml`: hourly, opens or updates a pull request that moves
   node-switchbot to its newest release (see "Following node-switchbot Changes"), and starts
   `ci.yml` on it. Run it by hand from the Actions tab to check immediately.
-
-## Complete Workflow Examples
-
-### Example 1: Issue with Proper Labels
-**Scenario:** Issue #1234 assigned to Copilot with `minor` label
-
-**Workflow:**
-1. **Label Detection:** Copilot detects `minor` label → target version 4.4.0
-2. **Branch Check:** Look for existing beta branches: `git ls-remote --heads origin | grep beta-`
-3. **Beta Branch Creation:** No beta-4.4.0 exists → create from latest branch
-4. **PR Targeting:** Target the new beta-4.4.0 branch
-5. **Development:** Make changes, test, commit to beta branch
-
-### Example 2: Issue without Version Labels
-**Scenario:** Issue #1276 assigned to Copilot with no version increment labels
-
-**Workflow:**
-1. **Label Detection:** No version labels found → default to patch increment
-2. **Version Calculation:** Current 4.3.1 → next patch 4.3.2
-3. **Branch Check:** beta-4.3.2 already exists → target existing branch
-4. **Development:** Make changes, document label requirement in PR description
-
-### Example 3: Multiple Version Labels
-**Scenario:** Issue assigned with both `minor` and `patch` labels
-
-**Workflow:**
-1. **Label Priority:** minor (higher priority) overrides patch
-2. **Version Target:** Calculate minor increment instead of patch
-3. **Documentation:** Note in PR description why minor was chosen over patch
