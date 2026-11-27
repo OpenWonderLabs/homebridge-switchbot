@@ -113,7 +113,7 @@
     "nodemon": "^3.1.14",
     "shx": "^0.4.0",
     "typedoc": "^0.28.20",
-    "typescript": "^7.0.2",
+    "typescript": "^6.0.3",
     "vite": "^8.3.5",
     "vitest": "^5.0.3"
   }
