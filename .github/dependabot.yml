@@ -7,7 +7,7 @@ version: 2
 updates:
   - package-ecosystem: 'npm' # See documentation for possible values
     directory: '/' # Location of package manifests
-    target-branch: 'beta-*.*.*'
+    target-branch: 'latest'
     schedule:
       interval: 'daily'
     ignore:
@@ -15,6 +15,6 @@ updates:
       - dependency-name: 'node-switchbot'
   - package-ecosystem: 'github-actions' # See documentation for possible values
     directory: '/' # Location of package manifests
-    target-branch: 'beta-*.*.*'
+    target-branch: 'latest'
     schedule:
       interval: 'daily'
