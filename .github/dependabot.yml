@@ -13,6 +13,13 @@ updates:
     ignore:
       # Updated and released automatically by .github/workflows/node-switchbot-update.yml
       - dependency-name: 'node-switchbot'
+      # typedoc 0.28 accepts TypeScript up to 6.0.x; 7 breaks npm ci (#1477, #1483)
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+    groups:
+      # vitest and its plugins must move together (peer ranges)
+      vitest:
+        patterns: ['vitest', '@vitest/*']
   - package-ecosystem: 'github-actions' # See documentation for possible values
     directory: '/' # Location of package manifests
     target-branch: 'latest'
